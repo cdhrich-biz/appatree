@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { searchVideos, getVideoDetails, getChannelDetails, getPlaylistItems } from "./_core/youtube";
+import { searchVideos, getVideoDetails, getVideoDetailsBatch, getChannelDetails, getPlaylistItems } from "./_core/youtube";
 import { voiceRouter } from "./voiceRouter";
 import { libraryRouter } from "./libraryRouter";
 import { chatRouter } from "./chatRouter";
@@ -26,7 +26,10 @@ export const appRouter = router({
   youtube: router({
     search: publicProcedure
       .input(z.object({ query: z.string(), maxResults: z.number().optional(), order: z.string().optional(), pageToken: z.string().optional() }))
-      .query(({ input }) => searchVideos(input.query, input.maxResults)),
+      .query(({ input }) => searchVideos(input.query, input.maxResults, undefined, undefined, input.order, input.pageToken)),
+    videosBatch: publicProcedure
+      .input(z.object({ videoIds: z.array(z.string()).max(50) }))
+      .query(({ input }) => getVideoDetailsBatch(input.videoIds)),
     video: publicProcedure
       .input(z.object({ videoId: z.string() }))
       .query(({ input }) => getVideoDetails(input.videoId)),

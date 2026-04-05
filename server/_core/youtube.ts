@@ -127,23 +127,36 @@ async function logSearch(query: string, resultCount: number, userId?: number, so
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
-export async function searchVideos(query: string, maxResults?: number, userId?: number, source?: "text" | "voice" | "category") {
+export async function searchVideos(
+  query: string,
+  maxResults?: number,
+  userId?: number,
+  source?: "text" | "voice" | "category",
+  order?: string,
+  pageToken?: string,
+) {
   const config = await getYouTubeConfig();
   const fullQuery = `${query} ${config.audiobookSuffix}`.trim();
   const max = maxResults ?? config.defaultMaxResults;
-  const cacheKey = `search:${fullQuery}:${max}:${config.safeSearch}`;
+  const orderVal = order ?? "relevance";
+  const cacheKey = `search:${fullQuery}:${max}:${config.safeSearch}:${orderVal}:${pageToken ?? ""}`;
 
   const cached = getCached<unknown>(cacheKey);
   if (cached) return cached;
 
-  const result = await youtubeGet<Record<string, unknown>>("search", {
+  const params: Record<string, string> = {
     part: "snippet",
     q: fullQuery,
     type: "video",
     maxResults: String(max),
     safeSearch: config.safeSearch,
     relevanceLanguage: config.relevanceLanguage,
-  });
+    videoDuration: "long",
+    order: orderVal,
+  };
+  if (pageToken) params.pageToken = pageToken;
+
+  const result = await youtubeGet<Record<string, unknown>>("search", params);
 
   // Filter blocked content
   if (Array.isArray(result.items)) {
@@ -152,6 +165,21 @@ export async function searchVideos(query: string, maxResults?: number, userId?: 
 
   setCache(cacheKey, result);
   await logSearch(query, Array.isArray(result.items) ? result.items.length : 0, userId, source);
+  return result;
+}
+
+export async function getVideoDetailsBatch(videoIds: string[]) {
+  if (videoIds.length === 0) return { items: [] };
+  const sorted = [...videoIds].sort();
+  const cacheKey = `videos:${sorted.join(",")}`;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
+
+  const result = await youtubeGet("videos", {
+    part: "snippet,contentDetails,statistics",
+    id: videoIds.join(","),
+  });
+  setCache(cacheKey, result);
   return result;
 }
 

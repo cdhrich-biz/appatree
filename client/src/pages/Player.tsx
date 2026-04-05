@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
@@ -22,15 +22,37 @@ interface YTPlayer {
   destroy(): void;
 }
 
+interface VideoSnippet {
+  title: string;
+  channelTitle: string;
+  thumbnails: { high?: { url: string } };
+}
+
+interface VideoDetail {
+  snippet: VideoSnippet;
+  contentDetails: { duration: string };
+  statistics: { viewCount: string };
+}
+
 export default function Player() {
   const [, navigate] = useLocation();
+
+  // Parse URL params once
+  const params = useMemo(() => {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      id: p.get('id') ?? '',
+      title: decodeURIComponent(p.get('title') ?? ''),
+      startTime: Number(p.get('t') ?? 0),
+    };
+  }, []);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [volume, setVolume] = useState(70);
-  const [videoId, setVideoId] = useState('');
-  const [videoTitle, setVideoTitle] = useState('');
+  const [videoTitle, setVideoTitle] = useState(params.title);
   const [videoChannel, setVideoChannel] = useState('');
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
   const [sleepRemaining, setSleepRemaining] = useState(0);
@@ -44,29 +66,51 @@ export default function Player() {
   const updateProgressMutation = trpc.library.updateProgress.useMutation();
   const bookmarkMutation = trpc.library.addBookmark.useMutation();
 
-  // Parse URL params
+  // Fetch real video details
+  const videoQuery = trpc.youtube.video.useQuery(
+    { videoId: params.id },
+    { enabled: !!params.id }
+  );
+
+  // Update metadata from API response
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id') ?? '';
-    const title = params.get('title') ?? '';
-    setVideoId(id);
-    setVideoTitle(decodeURIComponent(title));
-  }, []);
+    const items = (videoQuery.data?.items as VideoDetail[] | undefined);
+    if (items && items.length > 0) {
+      const detail = items[0];
+      setVideoTitle(detail.snippet.title);
+      setVideoChannel(detail.snippet.channelTitle);
+    }
+  }, [videoQuery.data]);
 
   // Load YouTube IFrame API and create player
   useEffect(() => {
-    if (!videoId) return;
+    if (!params.id) return;
 
     const initPlayer = () => {
       playerRef.current = new window.YT.Player('yt-player', {
-        videoId,
+        videoId: params.id,
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
         events: {
           onReady: (event: { target: YTPlayer }) => {
             const d = event.target.getDuration();
             setDuration(d);
-            setVideoChannel('YouTube 오디오북');
-            addHistoryMutation.mutate({ videoId, title: videoTitle, totalSeconds: Math.floor(d) });
+
+            // Seek to saved position
+            if (params.startTime > 0) {
+              event.target.seekTo(params.startTime, true);
+            }
+
+            // Get video detail for history
+            const items = (videoQuery.data?.items as VideoDetail[] | undefined);
+            const detail = items?.[0];
+
+            addHistoryMutation.mutate({
+              videoId: params.id,
+              title: detail?.snippet.title ?? params.title,
+              channelName: detail?.snippet.channelTitle,
+              thumbnailUrl: detail?.snippet.thumbnails.high?.url,
+              totalSeconds: Math.floor(d),
+            });
           },
           onStateChange: (event: { data: number }) => {
             setIsPlaying(event.data === 1);
@@ -87,7 +131,7 @@ export default function Player() {
     return () => {
       playerRef.current?.destroy();
     };
-  }, [videoId]);
+  }, [params.id]);
 
   // Progress tracking
   useEffect(() => {
@@ -101,18 +145,18 @@ export default function Player() {
 
   // Save progress every 30 seconds
   useEffect(() => {
-    if (!videoId) return;
+    if (!params.id) return;
     saveInterval.current = setInterval(() => {
       if (playerRef.current && isPlaying) {
         updateProgressMutation.mutate({
-          videoId,
+          videoId: params.id,
           progressSeconds: Math.floor(playerRef.current.getCurrentTime()),
           totalSeconds: Math.floor(playerRef.current.getDuration()),
         });
       }
     }, 30000);
     return () => clearInterval(saveInterval.current);
-  }, [videoId, isPlaying]);
+  }, [params.id, isPlaying]);
 
   // Sleep timer
   useEffect(() => {
@@ -129,7 +173,6 @@ export default function Player() {
           setSleepTimer(null);
           return 0;
         }
-        // Fade volume in last 30 seconds
         if (prev <= 30 && playerRef.current) {
           playerRef.current.setVolume(Math.floor((prev / 30) * volume));
         }
@@ -162,7 +205,16 @@ export default function Player() {
   };
 
   const handleBookmark = () => {
-    if (videoId) bookmarkMutation.mutate({ videoId, title: videoTitle, channelName: videoChannel });
+    if (!params.id) return;
+    const items = (videoQuery.data?.items as VideoDetail[] | undefined);
+    const detail = items?.[0];
+    bookmarkMutation.mutate({
+      videoId: params.id,
+      title: videoTitle,
+      channelName: videoChannel,
+      thumbnailUrl: detail?.snippet.thumbnails.high?.url,
+      duration: detail?.contentDetails.duration,
+    });
   };
 
   const formatTime = (seconds: number): string => {
@@ -191,7 +243,7 @@ export default function Player() {
 
         <div className="mb-6">
           <h2 className="text-senior-heading text-gray-800 mb-2">{videoTitle}</h2>
-          <p className="text-senior-body text-gray-600">{videoChannel}</p>
+          <p className="text-senior-body text-gray-600">{videoChannel || '로딩 중...'}</p>
         </div>
 
         {/* Progress */}

@@ -26,7 +26,10 @@ export const libraryRouter = router({
       await db
         .insert(bookmarks)
         .values({ userId: ctx.user.id, ...input })
-        .onConflictDoUpdate({ target: [bookmarks.userId, bookmarks.videoId], set: { title: input.title } });
+        .onConflictDoUpdate({
+          target: [bookmarks.userId, bookmarks.videoId],
+          set: { title: input.title, channelName: input.channelName, thumbnailUrl: input.thumbnailUrl, duration: input.duration },
+        });
       return { success: true };
     }),
 
@@ -87,6 +90,9 @@ export const libraryRouter = router({
           target: [listeningHistory.userId, listeningHistory.videoId],
           set: {
             title: input.title,
+            channelName: input.channelName,
+            thumbnailUrl: input.thumbnailUrl,
+            duration: input.duration,
             progressSeconds: input.progressSeconds,
             totalSeconds: input.totalSeconds,
             lastPlayedAt: new Date(),
