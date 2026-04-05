@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Settings, Home as HomeIcon, Search, MessageCircle, BookOpen } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
@@ -8,9 +8,9 @@ type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'erro
 export default function Home() {
   const [, navigate] = useLocation();
   const [voiceState, setVoiceState] = useState<VoiceButtonState>('idle');
-  const [recognitionText, setRecognitionText] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionTextRef = useRef('');
 
   const categoriesQuery = trpc.config.categories.useQuery();
   const announcementsQuery = trpc.config.announcements.useQuery();
@@ -20,60 +20,7 @@ export default function Home() {
   const announcements = announcementsQuery.data ?? [];
   const recentHistory = historyQuery.data ?? [];
 
-  // Initialize Web Speech API
-  useEffect(() => {
-    const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
-    if (SpeechRecognitionClass) {
-      const recognition = new SpeechRecognitionClass();
-      recognition.lang = 'ko-KR';
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognitionRef.current = recognition;
-
-      recognition.onstart = () => {
-        setVoiceState('recording');
-        setStatusMessage('듣고 있습니다...');
-        speakMessage('말씀해주세요');
-      };
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            setRecognitionText(transcript);
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        if (interimTranscript) setStatusMessage(interimTranscript);
-      };
-
-      recognition.onerror = () => {
-        setVoiceState('error');
-        setStatusMessage('다시 말씀해주세요');
-        speakMessage('다시 말씀해주세요');
-        setTimeout(() => setVoiceState('idle'), 3000);
-      };
-
-      recognition.onend = () => {
-        // Use latest recognitionText via ref callback
-      };
-    }
-
-    return () => { recognitionRef.current?.abort(); };
-  }, []);
-
-  // Navigate when recognition completes
-  useEffect(() => {
-    if (recognitionText && voiceState === 'recording') {
-      setVoiceState('processing');
-      setStatusMessage('검색 중입니다...');
-      setTimeout(() => navigate(`/search?q=${encodeURIComponent(recognitionText)}`), 500);
-    }
-  }, [recognitionText]);
-
-  const speakMessage = (message: string) => {
+  const speakMessage = useCallback((message: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(message);
@@ -81,11 +28,60 @@ export default function Home() {
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
-  };
+  }, []);
+
+  // Initialize Web Speech API
+  useEffect(() => {
+    const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (!SpeechRecognitionClass) return;
+
+    const recognition = new SpeechRecognitionClass();
+    recognition.lang = 'ko-KR';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
+      setVoiceState('recording');
+      setStatusMessage('듣고 있습니다...');
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          recognitionTextRef.current = transcript;
+          setStatusMessage(transcript);
+        } else {
+          setStatusMessage(transcript);
+        }
+      }
+    };
+
+    recognition.onerror = () => {
+      setVoiceState('error');
+      setStatusMessage('다시 말씀해주세요');
+      setTimeout(() => setVoiceState('idle'), 3000);
+    };
+
+    recognition.onend = () => {
+      const text = recognitionTextRef.current;
+      if (text) {
+        setVoiceState('processing');
+        setStatusMessage('검색 중입니다...');
+        setTimeout(() => navigate(`/search?q=${encodeURIComponent(text)}`), 500);
+        recognitionTextRef.current = '';
+      } else {
+        setVoiceState('idle');
+      }
+    };
+
+    return () => { recognitionRef.current?.abort(); };
+  }, [navigate, speakMessage]);
 
   const handleVoiceButtonClick = () => {
     if (voiceState === 'idle') {
-      setRecognitionText('');
+      recognitionTextRef.current = '';
       setStatusMessage('');
       recognitionRef.current?.start();
     }
