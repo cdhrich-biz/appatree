@@ -1122,30 +1122,39 @@ import { eq as eq6, and as and3, or as or2, isNull, lte, gte } from "drizzle-orm
 import { asc as asc2 } from "drizzle-orm";
 var configRouter = router({
   categories: publicProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) {
-      return [
-        { id: 0, slug: "novel", name: "\uC18C\uC124", icon: "\u{1F4D6}", searchQuery: "\uC18C\uC124 \uC624\uB514\uC624\uBD81", sortOrder: 0, isActive: true },
-        { id: 0, slug: "essay", name: "\uC5D0\uC138\uC774", icon: "\u270D\uFE0F", searchQuery: "\uC5D0\uC138\uC774 \uC624\uB514\uC624\uBD81", sortOrder: 1, isActive: true },
-        { id: 0, slug: "history", name: "\uC5ED\uC0AC", icon: "\u{1F3DB}\uFE0F", searchQuery: "\uC5ED\uC0AC \uC624\uB514\uC624\uBD81", sortOrder: 2, isActive: true },
-        { id: 0, slug: "economy", name: "\uACBD\uC81C", icon: "\u{1F4BC}", searchQuery: "\uACBD\uC81C \uC624\uB514\uC624\uBD81", sortOrder: 3, isActive: true },
-        { id: 0, slug: "selfhelp", name: "\uC790\uAE30\uACC4\uBC1C", icon: "\u{1F331}", searchQuery: "\uC790\uAE30\uACC4\uBC1C \uC624\uB514\uC624\uBD81", sortOrder: 4, isActive: true },
-        { id: 0, slug: "popular", name: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", icon: "\u2B50", searchQuery: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", sortOrder: 5, isActive: true }
-      ];
+    const fallback = [
+      { id: 0, slug: "novel", name: "\uC18C\uC124", icon: "\u{1F4D6}", searchQuery: "\uC18C\uC124 \uC624\uB514\uC624\uBD81", sortOrder: 0, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+      { id: 0, slug: "essay", name: "\uC5D0\uC138\uC774", icon: "\u270D\uFE0F", searchQuery: "\uC5D0\uC138\uC774 \uC624\uB514\uC624\uBD81", sortOrder: 1, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+      { id: 0, slug: "history", name: "\uC5ED\uC0AC", icon: "\u{1F3DB}\uFE0F", searchQuery: "\uC5ED\uC0AC \uC624\uB514\uC624\uBD81", sortOrder: 2, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+      { id: 0, slug: "economy", name: "\uACBD\uC81C", icon: "\u{1F4BC}", searchQuery: "\uACBD\uC81C \uC624\uB514\uC624\uBD81", sortOrder: 3, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+      { id: 0, slug: "selfhelp", name: "\uC790\uAE30\uACC4\uBC1C", icon: "\u{1F331}", searchQuery: "\uC790\uAE30\uACC4\uBC1C \uC624\uB514\uC624\uBD81", sortOrder: 4, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+      { id: 0, slug: "popular", name: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", icon: "\u2B50", searchQuery: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", sortOrder: 5, isActive: true, createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }
+    ];
+    try {
+      const db = await getDb();
+      if (!db) return fallback;
+      return await db.select().from(categories).where(eq6(categories.isActive, true)).orderBy(asc2(categories.sortOrder));
+    } catch (e) {
+      console.error("[config.categories] DB error, using fallback:", e);
+      return fallback;
     }
-    return db.select().from(categories).where(eq6(categories.isActive, true)).orderBy(asc2(categories.sortOrder));
   }),
   announcements: publicProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) return [];
-    const now = /* @__PURE__ */ new Date();
-    return db.select().from(announcements).where(
-      and3(
-        eq6(announcements.isActive, true),
-        or2(isNull(announcements.startAt), lte(announcements.startAt, now)),
-        or2(isNull(announcements.endAt), gte(announcements.endAt, now))
-      )
-    );
+    try {
+      const db = await getDb();
+      if (!db) return [];
+      const now = /* @__PURE__ */ new Date();
+      return await db.select().from(announcements).where(
+        and3(
+          eq6(announcements.isActive, true),
+          or2(isNull(announcements.startAt), lte(announcements.startAt, now)),
+          or2(isNull(announcements.endAt), gte(announcements.endAt, now))
+        )
+      );
+    } catch (e) {
+      console.error("[config.announcements] DB error:", e);
+      return [];
+    }
   }),
   appSettings: publicProcedure.query(async () => {
     const db = await getDb();
