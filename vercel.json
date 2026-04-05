@@ -3,8 +3,9 @@
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 30
+    "api/trpc/[trpc].ts": {
+      "maxDuration": 30,
+      "includeFiles": "server/**,drizzle/**,shared/**"
     }
   },
   "rewrites": [
