@@ -1,21 +1,16 @@
 import { build } from "esbuild";
-import { rmSync, renameSync, existsSync } from "fs";
+import { mkdirSync } from "fs";
 
-const src = "api/trpc/[trpc].ts";
-const out = "api/trpc/[trpc].js";
+mkdirSync("api/trpc", { recursive: true });
 
-// Build CJS bundle
 await build({
-  entryPoints: [src],
+  entryPoints: ["_api-src/trpc/handler.ts"],
   bundle: true,
   platform: "node",
   target: "node18",
   format: "cjs",
-  outfile: out,
+  outfile: "api/trpc/[trpc].js",
   packages: "external",
 });
 
-// Remove .ts source to avoid Vercel conflict
-rmSync(src, { force: true });
-
-console.log("✓ API bundled → api/trpc/[trpc].js (source removed)");
+console.log("✓ API bundled → api/trpc/[trpc].js");
