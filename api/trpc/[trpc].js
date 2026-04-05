@@ -1,40 +1,6 @@
-"use strict";
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc4) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc4 = __getOwnPropDesc(from, key)) || desc4.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
 // _api-src/trpc/handler.ts
-var handler_exports = {};
-__export(handler_exports, {
-  default: () => handler
-});
-module.exports = __toCommonJS(handler_exports);
-var import_config = require("dotenv/config");
-var import_fetch = require("@trpc/server/adapters/fetch");
+import "dotenv/config";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 // shared/const.ts
 var COOKIE_NAME = "app_session_id";
@@ -44,7 +10,7 @@ var UNAUTHED_ERR_MSG = "Please login (10001)";
 var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
 // server/routers.ts
-var import_zod7 = require("zod");
+import { z as z7 } from "zod";
 
 // server/_core/cookies.ts
 function isSecureRequest(req) {
@@ -64,10 +30,10 @@ function getSessionCookieOptions(req) {
 }
 
 // server/_core/systemRouter.ts
-var import_zod = require("zod");
+import { z } from "zod";
 
 // server/_core/notification.ts
-var import_server = require("@trpc/server");
+import { TRPCError } from "@trpc/server";
 
 // server/_core/env.ts
 var ENV = {
@@ -96,13 +62,13 @@ var buildEndpointUrl = (baseUrl) => {
 };
 var validatePayload = (input) => {
   if (!isNonEmptyString(input.title)) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Notification title is required."
     });
   }
   if (!isNonEmptyString(input.content)) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Notification content is required."
     });
@@ -110,13 +76,13 @@ var validatePayload = (input) => {
   const title = trimValue(input.title);
   const content = trimValue(input.content);
   if (title.length > TITLE_MAX_LENGTH) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "BAD_REQUEST",
       message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
     });
   }
   if (content.length > CONTENT_MAX_LENGTH) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "BAD_REQUEST",
       message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
     });
@@ -126,13 +92,13 @@ var validatePayload = (input) => {
 async function notifyOwner(payload) {
   const { title, content } = validatePayload(payload);
   if (!ENV.forgeApiUrl) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Notification service URL is not configured."
     });
   }
   if (!ENV.forgeApiKey) {
-    throw new import_server.TRPCError({
+    throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Notification service API key is not configured."
     });
@@ -164,17 +130,17 @@ async function notifyOwner(payload) {
 }
 
 // server/_core/trpc.ts
-var import_server2 = require("@trpc/server");
-var import_superjson = __toESM(require("superjson"), 1);
-var t = import_server2.initTRPC.context().create({
-  transformer: import_superjson.default
+import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
+import superjson from "superjson";
+var t = initTRPC.context().create({
+  transformer: superjson
 });
 var router = t.router;
 var publicProcedure = t.procedure;
 var requireUser = t.middleware(async (opts) => {
   const { ctx, next } = opts;
   if (!ctx.user) {
-    throw new import_server2.TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
   return next({
     ctx: {
@@ -188,7 +154,7 @@ var adminProcedure = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
     if (!ctx.user || ctx.user.role !== "admin") {
-      throw new import_server2.TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
     return next({
       ctx: {
@@ -202,16 +168,16 @@ var adminProcedure = t.procedure.use(
 // server/_core/systemRouter.ts
 var systemRouter = router({
   health: publicProcedure.input(
-    import_zod.z.object({
-      timestamp: import_zod.z.number().min(0, "timestamp cannot be negative")
+    z.object({
+      timestamp: z.number().min(0, "timestamp cannot be negative")
     })
   ).query(() => ({
     ok: true
   })),
   notifyOwner: adminProcedure.input(
-    import_zod.z.object({
-      title: import_zod.z.string().min(1, "title is required"),
-      content: import_zod.z.string().min(1, "content is required")
+    z.object({
+      title: z.string().min(1, "title is required"),
+      content: z.string().min(1, "content is required")
     })
   ).mutation(async ({ input }) => {
     const delivered = await notifyOwner(input);
@@ -222,153 +188,153 @@ var systemRouter = router({
 });
 
 // server/_core/youtube.ts
-var import_drizzle_orm2 = require("drizzle-orm");
+import { eq as eq2, or } from "drizzle-orm";
 
 // drizzle/schema.ts
-var import_pg_core = require("drizzle-orm/pg-core");
-var roleEnum = (0, import_pg_core.pgEnum)("role", ["user", "admin"]);
-var textSizeEnum = (0, import_pg_core.pgEnum)("text_size", ["small", "medium", "large"]);
-var searchSourceEnum = (0, import_pg_core.pgEnum)("search_source", ["voice", "text", "category"]);
-var chatRoleEnum = (0, import_pg_core.pgEnum)("chat_role", ["user", "assistant", "system"]);
-var announcementTypeEnum = (0, import_pg_core.pgEnum)("announcement_type", ["info", "warning", "urgent"]);
-var users = (0, import_pg_core.pgTable)("users", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  openId: (0, import_pg_core.varchar)("open_id", { length: 64 }).notNull().unique(),
-  name: (0, import_pg_core.text)("name"),
-  email: (0, import_pg_core.varchar)("email", { length: 320 }),
-  loginMethod: (0, import_pg_core.varchar)("login_method", { length: 64 }),
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, varchar, numeric, index, uniqueIndex } from "drizzle-orm/pg-core";
+var roleEnum = pgEnum("role", ["user", "admin"]);
+var textSizeEnum = pgEnum("text_size", ["small", "medium", "large"]);
+var searchSourceEnum = pgEnum("search_source", ["voice", "text", "category"]);
+var chatRoleEnum = pgEnum("chat_role", ["user", "assistant", "system"]);
+var announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "urgent"]);
+var users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  openId: varchar("open_id", { length: 64 }).notNull().unique(),
+  name: text("name"),
+  email: varchar("email", { length: 320 }),
+  loginMethod: varchar("login_method", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull(),
-  lastSignedIn: (0, import_pg_core.timestamp)("last_signed_in").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull()
 });
-var userPreferences = (0, import_pg_core.pgTable)("user_preferences", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  userId: (0, import_pg_core.integer)("user_id").notNull().unique(),
+var userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
   textSize: textSizeEnum("text_size").default("medium").notNull(),
-  volume: (0, import_pg_core.integer)("volume").default(70).notNull(),
-  ttsSpeed: (0, import_pg_core.numeric)("tts_speed", { precision: 3, scale: 2 }).default("0.90").notNull(),
-  autoplay: (0, import_pg_core.boolean)("autoplay").default(true).notNull(),
-  preferredLanguage: (0, import_pg_core.varchar)("preferred_language", { length: 10 }).default("ko-KR").notNull(),
-  highContrast: (0, import_pg_core.boolean)("high_contrast").default(false).notNull(),
-  hasSeenOnboarding: (0, import_pg_core.boolean)("has_seen_onboarding").default(false).notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+  volume: integer("volume").default(70).notNull(),
+  ttsSpeed: numeric("tts_speed", { precision: 3, scale: 2 }).default("0.90").notNull(),
+  autoplay: boolean("autoplay").default(true).notNull(),
+  preferredLanguage: varchar("preferred_language", { length: 10 }).default("ko-KR").notNull(),
+  highContrast: boolean("high_contrast").default(false).notNull(),
+  hasSeenOnboarding: boolean("has_seen_onboarding").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var bookmarks = (0, import_pg_core.pgTable)("bookmarks", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  userId: (0, import_pg_core.integer)("user_id").notNull(),
-  videoId: (0, import_pg_core.varchar)("video_id", { length: 32 }).notNull(),
-  title: (0, import_pg_core.text)("title").notNull(),
-  channelName: (0, import_pg_core.text)("channel_name"),
-  thumbnailUrl: (0, import_pg_core.text)("thumbnail_url"),
-  duration: (0, import_pg_core.varchar)("duration", { length: 32 }),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+var bookmarks = pgTable("bookmarks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  videoId: varchar("video_id", { length: 32 }).notNull(),
+  title: text("title").notNull(),
+  channelName: text("channel_name"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: varchar("duration", { length: 32 }),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.uniqueIndex)("bookmarks_user_video_idx").on(table.userId, table.videoId)
+  uniqueIndex("bookmarks_user_video_idx").on(table.userId, table.videoId)
 ]);
-var listeningHistory = (0, import_pg_core.pgTable)("listening_history", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  userId: (0, import_pg_core.integer)("user_id").notNull(),
-  videoId: (0, import_pg_core.varchar)("video_id", { length: 32 }).notNull(),
-  title: (0, import_pg_core.text)("title").notNull(),
-  channelName: (0, import_pg_core.text)("channel_name"),
-  thumbnailUrl: (0, import_pg_core.text)("thumbnail_url"),
-  duration: (0, import_pg_core.varchar)("duration", { length: 32 }),
-  progressSeconds: (0, import_pg_core.integer)("progress_seconds").default(0).notNull(),
-  totalSeconds: (0, import_pg_core.integer)("total_seconds").default(0).notNull(),
-  lastPlayedAt: (0, import_pg_core.timestamp)("last_played_at").defaultNow().notNull()
+var listeningHistory = pgTable("listening_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  videoId: varchar("video_id", { length: 32 }).notNull(),
+  title: text("title").notNull(),
+  channelName: text("channel_name"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: varchar("duration", { length: 32 }),
+  progressSeconds: integer("progress_seconds").default(0).notNull(),
+  totalSeconds: integer("total_seconds").default(0).notNull(),
+  lastPlayedAt: timestamp("last_played_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.uniqueIndex)("history_user_video_idx").on(table.userId, table.videoId),
-  (0, import_pg_core.index)("history_user_played_idx").on(table.userId, table.lastPlayedAt)
+  uniqueIndex("history_user_video_idx").on(table.userId, table.videoId),
+  index("history_user_played_idx").on(table.userId, table.lastPlayedAt)
 ]);
-var searchLogs = (0, import_pg_core.pgTable)("search_logs", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  userId: (0, import_pg_core.integer)("user_id"),
-  query: (0, import_pg_core.text)("query").notNull(),
-  resultCount: (0, import_pg_core.integer)("result_count").default(0).notNull(),
+var searchLogs = pgTable("search_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  query: text("query").notNull(),
+  resultCount: integer("result_count").default(0).notNull(),
   source: searchSourceEnum("source").default("text").notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.index)("search_logs_created_idx").on(table.createdAt)
+  index("search_logs_created_idx").on(table.createdAt)
 ]);
-var chatSessions = (0, import_pg_core.pgTable)("chat_sessions", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  userId: (0, import_pg_core.integer)("user_id").notNull(),
-  title: (0, import_pg_core.varchar)("title", { length: 200 }).default("\uC0C8 \uB300\uD654").notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+var chatSessions = pgTable("chat_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: varchar("title", { length: 200 }).default("\uC0C8 \uB300\uD654").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.index)("chat_sessions_user_idx").on(table.userId)
+  index("chat_sessions_user_idx").on(table.userId)
 ]);
-var chatMessages = (0, import_pg_core.pgTable)("chat_messages", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  sessionId: (0, import_pg_core.integer)("session_id").notNull(),
+var chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull(),
   role: chatRoleEnum("role").notNull(),
-  content: (0, import_pg_core.text)("content").notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.index)("chat_messages_session_idx").on(table.sessionId)
+  index("chat_messages_session_idx").on(table.sessionId)
 ]);
-var categories = (0, import_pg_core.pgTable)("categories", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  slug: (0, import_pg_core.varchar)("slug", { length: 64 }).notNull().unique(),
-  name: (0, import_pg_core.varchar)("name", { length: 100 }).notNull(),
-  icon: (0, import_pg_core.varchar)("icon", { length: 10 }).notNull(),
-  searchQuery: (0, import_pg_core.varchar)("search_query", { length: 200 }).notNull(),
-  sortOrder: (0, import_pg_core.integer)("sort_order").default(0).notNull(),
-  isActive: (0, import_pg_core.boolean)("is_active").default(true).notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+var categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  name: varchar("name", { length: 100 }).notNull(),
+  icon: varchar("icon", { length: 10 }).notNull(),
+  searchQuery: varchar("search_query", { length: 200 }).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var curatedContent = (0, import_pg_core.pgTable)("curated_content", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  categorySlug: (0, import_pg_core.varchar)("category_slug", { length: 64 }).notNull(),
-  videoId: (0, import_pg_core.varchar)("video_id", { length: 32 }).notNull(),
-  title: (0, import_pg_core.text)("title").notNull(),
-  channelName: (0, import_pg_core.text)("channel_name"),
-  thumbnailUrl: (0, import_pg_core.text)("thumbnail_url"),
-  duration: (0, import_pg_core.varchar)("duration", { length: 32 }),
-  description: (0, import_pg_core.text)("description"),
-  sortOrder: (0, import_pg_core.integer)("sort_order").default(0).notNull(),
-  isActive: (0, import_pg_core.boolean)("is_active").default(true).notNull(),
-  addedBy: (0, import_pg_core.integer)("added_by"),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+var curatedContent = pgTable("curated_content", {
+  id: serial("id").primaryKey(),
+  categorySlug: varchar("category_slug", { length: 64 }).notNull(),
+  videoId: varchar("video_id", { length: 32 }).notNull(),
+  title: text("title").notNull(),
+  channelName: text("channel_name"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: varchar("duration", { length: 32 }),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  addedBy: integer("added_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core.index)("curated_category_idx").on(table.categorySlug)
+  index("curated_category_idx").on(table.categorySlug)
 ]);
-var appConfig = (0, import_pg_core.pgTable)("app_config", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  configKey: (0, import_pg_core.varchar)("config_key", { length: 128 }).notNull().unique(),
-  configValue: (0, import_pg_core.text)("config_value").notNull(),
-  description: (0, import_pg_core.text)("description"),
-  updatedBy: (0, import_pg_core.integer)("updated_by"),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+var appConfig = pgTable("app_config", {
+  id: serial("id").primaryKey(),
+  configKey: varchar("config_key", { length: 128 }).notNull().unique(),
+  configValue: text("config_value").notNull(),
+  description: text("description"),
+  updatedBy: integer("updated_by"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var announcements = (0, import_pg_core.pgTable)("announcements", {
-  id: (0, import_pg_core.serial)("id").primaryKey(),
-  title: (0, import_pg_core.varchar)("title", { length: 200 }).notNull(),
-  content: (0, import_pg_core.text)("content").notNull(),
+var announcements = pgTable("announcements", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
   type: announcementTypeEnum("type").default("info").notNull(),
-  isActive: (0, import_pg_core.boolean)("is_active").default(true).notNull(),
-  startAt: (0, import_pg_core.timestamp)("start_at"),
-  endAt: (0, import_pg_core.timestamp)("end_at"),
-  createdBy: (0, import_pg_core.integer)("created_by"),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+  isActive: boolean("is_active").default(true).notNull(),
+  startAt: timestamp("start_at"),
+  endAt: timestamp("end_at"),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 // server/db.ts
-var import_drizzle_orm = require("drizzle-orm");
-var import_postgres_js = require("drizzle-orm/postgres-js");
-var import_postgres = __toESM(require("postgres"), 1);
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 var _db = null;
 async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = (0, import_postgres.default)(process.env.DATABASE_URL);
-      _db = (0, import_postgres_js.drizzle)(client);
+      const client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -431,7 +397,7 @@ async function getUserByOpenId(openId) {
     console.warn("[Database] Cannot get user: database not available");
     return void 0;
   }
-  const result = await db.select().from(users).where((0, import_drizzle_orm.eq)(users.openId, openId)).limit(1);
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : void 0;
 }
 
@@ -458,13 +424,13 @@ async function getYouTubeConfig() {
     return { safeSearch: "strict", relevanceLanguage: "ko", audiobookSuffix: "\uC624\uB514\uC624\uBD81", defaultMaxResults: 10, blockedChannels: [], blockedKeywords: [] };
   }
   const configs = await db.select({ configKey: appConfig.configKey, configValue: appConfig.configValue }).from(appConfig).where(
-    (0, import_drizzle_orm2.or)(
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.safeSearch"),
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.relevanceLanguage"),
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.audiobookSuffix"),
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.defaultMaxResults"),
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.blockedChannels"),
-      (0, import_drizzle_orm2.eq)(appConfig.configKey, "youtube.blockedKeywords")
+    or(
+      eq2(appConfig.configKey, "youtube.safeSearch"),
+      eq2(appConfig.configKey, "youtube.relevanceLanguage"),
+      eq2(appConfig.configKey, "youtube.audiobookSuffix"),
+      eq2(appConfig.configKey, "youtube.defaultMaxResults"),
+      eq2(appConfig.configKey, "youtube.blockedChannels"),
+      eq2(appConfig.configKey, "youtube.blockedKeywords")
     )
   );
   const m = new Map(configs.map((c) => [c.configKey, c.configValue]));
@@ -591,7 +557,7 @@ function getPlaylistItems(playlistId, maxResults = 20) {
 }
 
 // server/voiceRouter.ts
-var import_zod2 = require("zod");
+import { z as z2 } from "zod";
 
 // server/_core/voiceTranscription.ts
 async function transcribeAudio(options) {
@@ -723,18 +689,18 @@ function getLanguageName(langCode) {
 }
 
 // server/voiceRouter.ts
-var import_server3 = require("@trpc/server");
+import { TRPCError as TRPCError3 } from "@trpc/server";
 var voiceRouter = router({
   transcribe: protectedProcedure.input(
-    import_zod2.z.object({
-      audioUrl: import_zod2.z.string().url(),
-      language: import_zod2.z.string().optional(),
-      prompt: import_zod2.z.string().optional()
+    z2.object({
+      audioUrl: z2.string().url(),
+      language: z2.string().optional(),
+      prompt: z2.string().optional()
     })
   ).mutation(async ({ input, ctx }) => {
     const result = await transcribeAudio(input);
     if ("error" in result) {
-      throw new import_server3.TRPCError({
+      throw new TRPCError3({
         code: "BAD_REQUEST",
         message: result.error,
         cause: result
@@ -754,21 +720,21 @@ var voiceRouter = router({
 });
 
 // server/libraryRouter.ts
-var import_zod3 = require("zod");
-var import_drizzle_orm3 = require("drizzle-orm");
-var import_server4 = require("@trpc/server");
+import { z as z3 } from "zod";
+import { eq as eq3, and, desc } from "drizzle-orm";
+import { TRPCError as TRPCError4 } from "@trpc/server";
 function requireDb(db) {
-  if (!db) throw new import_server4.TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+  if (!db) throw new TRPCError4({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   return db;
 }
 var libraryRouter = router({
   addBookmark: protectedProcedure.input(
-    import_zod3.z.object({
-      videoId: import_zod3.z.string(),
-      title: import_zod3.z.string(),
-      channelName: import_zod3.z.string().optional(),
-      thumbnailUrl: import_zod3.z.string().optional(),
-      duration: import_zod3.z.string().optional()
+    z3.object({
+      videoId: z3.string(),
+      title: z3.string(),
+      channelName: z3.string().optional(),
+      thumbnailUrl: z3.string().optional(),
+      duration: z3.string().optional()
     })
   ).mutation(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
@@ -778,30 +744,30 @@ var libraryRouter = router({
     });
     return { success: true };
   }),
-  removeBookmark: protectedProcedure.input(import_zod3.z.object({ videoId: import_zod3.z.string() })).mutation(async ({ input, ctx }) => {
+  removeBookmark: protectedProcedure.input(z3.object({ videoId: z3.string() })).mutation(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
-    await db.delete(bookmarks).where((0, import_drizzle_orm3.and)((0, import_drizzle_orm3.eq)(bookmarks.userId, ctx.user.id), (0, import_drizzle_orm3.eq)(bookmarks.videoId, input.videoId)));
+    await db.delete(bookmarks).where(and(eq3(bookmarks.userId, ctx.user.id), eq3(bookmarks.videoId, input.videoId)));
     return { success: true };
   }),
-  bookmarks: protectedProcedure.input(import_zod3.z.object({ limit: import_zod3.z.number().min(1).max(50).default(20), offset: import_zod3.z.number().min(0).default(0) })).query(async ({ input, ctx }) => {
+  bookmarks: protectedProcedure.input(z3.object({ limit: z3.number().min(1).max(50).default(20), offset: z3.number().min(0).default(0) })).query(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
-    const items = await db.select().from(bookmarks).where((0, import_drizzle_orm3.eq)(bookmarks.userId, ctx.user.id)).orderBy((0, import_drizzle_orm3.desc)(bookmarks.createdAt)).limit(input.limit).offset(input.offset);
+    const items = await db.select().from(bookmarks).where(eq3(bookmarks.userId, ctx.user.id)).orderBy(desc(bookmarks.createdAt)).limit(input.limit).offset(input.offset);
     return items;
   }),
-  isBookmarked: protectedProcedure.input(import_zod3.z.object({ videoId: import_zod3.z.string() })).query(async ({ input, ctx }) => {
+  isBookmarked: protectedProcedure.input(z3.object({ videoId: z3.string() })).query(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
-    const result = await db.select({ id: bookmarks.id }).from(bookmarks).where((0, import_drizzle_orm3.and)((0, import_drizzle_orm3.eq)(bookmarks.userId, ctx.user.id), (0, import_drizzle_orm3.eq)(bookmarks.videoId, input.videoId))).limit(1);
+    const result = await db.select({ id: bookmarks.id }).from(bookmarks).where(and(eq3(bookmarks.userId, ctx.user.id), eq3(bookmarks.videoId, input.videoId))).limit(1);
     return result.length > 0;
   }),
   addHistory: protectedProcedure.input(
-    import_zod3.z.object({
-      videoId: import_zod3.z.string(),
-      title: import_zod3.z.string(),
-      channelName: import_zod3.z.string().optional(),
-      thumbnailUrl: import_zod3.z.string().optional(),
-      duration: import_zod3.z.string().optional(),
-      progressSeconds: import_zod3.z.number().default(0),
-      totalSeconds: import_zod3.z.number().default(0)
+    z3.object({
+      videoId: z3.string(),
+      title: z3.string(),
+      channelName: z3.string().optional(),
+      thumbnailUrl: z3.string().optional(),
+      duration: z3.string().optional(),
+      progressSeconds: z3.number().default(0),
+      totalSeconds: z3.number().default(0)
     })
   ).mutation(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
@@ -819,12 +785,12 @@ var libraryRouter = router({
     });
     return { success: true };
   }),
-  history: protectedProcedure.input(import_zod3.z.object({ limit: import_zod3.z.number().min(1).max(50).default(20), offset: import_zod3.z.number().min(0).default(0) })).query(async ({ input, ctx }) => {
+  history: protectedProcedure.input(z3.object({ limit: z3.number().min(1).max(50).default(20), offset: z3.number().min(0).default(0) })).query(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
-    const items = await db.select().from(listeningHistory).where((0, import_drizzle_orm3.eq)(listeningHistory.userId, ctx.user.id)).orderBy((0, import_drizzle_orm3.desc)(listeningHistory.lastPlayedAt)).limit(input.limit).offset(input.offset);
+    const items = await db.select().from(listeningHistory).where(eq3(listeningHistory.userId, ctx.user.id)).orderBy(desc(listeningHistory.lastPlayedAt)).limit(input.limit).offset(input.offset);
     return items;
   }),
-  updateProgress: protectedProcedure.input(import_zod3.z.object({ videoId: import_zod3.z.string(), progressSeconds: import_zod3.z.number(), totalSeconds: import_zod3.z.number().optional() })).mutation(async ({ input, ctx }) => {
+  updateProgress: protectedProcedure.input(z3.object({ videoId: z3.string(), progressSeconds: z3.number(), totalSeconds: z3.number().optional() })).mutation(async ({ input, ctx }) => {
     const db = requireDb(await getDb());
     const updateSet = {
       progressSeconds: input.progressSeconds,
@@ -833,24 +799,24 @@ var libraryRouter = router({
     if (input.totalSeconds !== void 0) {
       updateSet.totalSeconds = input.totalSeconds;
     }
-    await db.update(listeningHistory).set(updateSet).where((0, import_drizzle_orm3.and)((0, import_drizzle_orm3.eq)(listeningHistory.userId, ctx.user.id), (0, import_drizzle_orm3.eq)(listeningHistory.videoId, input.videoId)));
+    await db.update(listeningHistory).set(updateSet).where(and(eq3(listeningHistory.userId, ctx.user.id), eq3(listeningHistory.videoId, input.videoId)));
     return { success: true };
   }),
   clearHistory: protectedProcedure.mutation(async ({ ctx }) => {
     const db = requireDb(await getDb());
-    await db.delete(listeningHistory).where((0, import_drizzle_orm3.eq)(listeningHistory.userId, ctx.user.id));
+    await db.delete(listeningHistory).where(eq3(listeningHistory.userId, ctx.user.id));
     return { success: true };
   }),
   clearBookmarks: protectedProcedure.mutation(async ({ ctx }) => {
     const db = requireDb(await getDb());
-    await db.delete(bookmarks).where((0, import_drizzle_orm3.eq)(bookmarks.userId, ctx.user.id));
+    await db.delete(bookmarks).where(eq3(bookmarks.userId, ctx.user.id));
     return { success: true };
   })
 });
 
 // server/chatRouter.ts
-var import_zod4 = require("zod");
-var import_drizzle_orm4 = require("drizzle-orm");
+import { z as z4 } from "zod";
+import { eq as eq4, desc as desc2, asc } from "drizzle-orm";
 
 // server/_core/llm.ts
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
@@ -1015,9 +981,9 @@ async function invokeLLM(params) {
 }
 
 // server/chatRouter.ts
-var import_server5 = require("@trpc/server");
+import { TRPCError as TRPCError5 } from "@trpc/server";
 function requireDb2(db) {
-  if (!db) throw new import_server5.TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+  if (!db) throw new TRPCError5({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   return db;
 }
 var DEFAULT_SYSTEM_PROMPT = `\uB2F9\uC2E0\uC740 \uC2DC\uB2C8\uC5B4 \uC0AC\uC6A9\uC790\uB97C \uC704\uD55C \uC624\uB514\uC624\uBD81 \uCD94\uCC9C \uB3C4\uC6B0\uBBF8\uC785\uB2C8\uB2E4.
@@ -1030,11 +996,11 @@ var DEFAULT_SYSTEM_PROMPT = `\uB2F9\uC2E0\uC740 \uC2DC\uB2C8\uC5B4 \uC0AC\uC6A9\
 var DEFAULT_GREETING = "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 \uB2F9\uC2E0\uC758 \uC624\uB514\uC624\uBD81 \uCD94\uCC9C \uB3C4\uC6B0\uBBF8\uC785\uB2C8\uB2E4. \uC5B4\uB5A4 \uCC45\uC744 \uCC3E\uACE0 \uACC4\uC2E0\uAC00\uC694?";
 var MAX_HISTORY_TURNS = 10;
 async function getConfigValue(db, key, fallback) {
-  const result = await db.select({ configValue: appConfig.configValue }).from(appConfig).where((0, import_drizzle_orm4.eq)(appConfig.configKey, key)).limit(1);
+  const result = await db.select({ configValue: appConfig.configValue }).from(appConfig).where(eq4(appConfig.configKey, key)).limit(1);
   return result.length > 0 ? result[0].configValue : fallback;
 }
 var chatRouter = router({
-  send: protectedProcedure.input(import_zod4.z.object({ sessionId: import_zod4.z.number().optional(), message: import_zod4.z.string().min(1) })).mutation(async ({ input, ctx }) => {
+  send: protectedProcedure.input(z4.object({ sessionId: z4.number().optional(), message: z4.string().min(1) })).mutation(async ({ input, ctx }) => {
     const db = requireDb2(await getDb());
     let sessionId = input.sessionId;
     if (!sessionId) {
@@ -1042,16 +1008,16 @@ var chatRouter = router({
       const [inserted] = await db.insert(chatSessions).values({ userId: ctx.user.id, title }).returning({ id: chatSessions.id });
       sessionId = inserted.id;
     } else {
-      const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where((0, import_drizzle_orm4.eq)(chatSessions.id, sessionId)).limit(1);
+      const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where(eq4(chatSessions.id, sessionId)).limit(1);
       if (session.length === 0 || session[0].userId !== ctx.user.id) {
-        throw new import_server5.TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+        throw new TRPCError5({ code: "NOT_FOUND", message: "Session not found" });
       }
     }
     await db.insert(chatMessages).values({ sessionId, role: "user", content: input.message });
     const systemPrompt = await getConfigValue(db, "ai.systemPrompt", DEFAULT_SYSTEM_PROMPT);
     const temperatureStr = await getConfigValue(db, "ai.temperature", "0.7");
     const maxTokensStr = await getConfigValue(db, "ai.maxTokens", "2048");
-    const history = await db.select({ role: chatMessages.role, content: chatMessages.content }).from(chatMessages).where((0, import_drizzle_orm4.eq)(chatMessages.sessionId, sessionId)).orderBy((0, import_drizzle_orm4.desc)(chatMessages.createdAt)).limit(MAX_HISTORY_TURNS * 2);
+    const history = await db.select({ role: chatMessages.role, content: chatMessages.content }).from(chatMessages).where(eq4(chatMessages.sessionId, sessionId)).orderBy(desc2(chatMessages.createdAt)).limit(MAX_HISTORY_TURNS * 2);
     const messages = [
       { role: "system", content: systemPrompt },
       ...history.reverse().map((m) => ({
@@ -1072,24 +1038,24 @@ var chatRouter = router({
   }),
   sessions: protectedProcedure.query(async ({ ctx }) => {
     const db = requireDb2(await getDb());
-    return db.select().from(chatSessions).where((0, import_drizzle_orm4.eq)(chatSessions.userId, ctx.user.id)).orderBy((0, import_drizzle_orm4.desc)(chatSessions.updatedAt));
+    return db.select().from(chatSessions).where(eq4(chatSessions.userId, ctx.user.id)).orderBy(desc2(chatSessions.updatedAt));
   }),
-  history: protectedProcedure.input(import_zod4.z.object({ sessionId: import_zod4.z.number() })).query(async ({ input, ctx }) => {
+  history: protectedProcedure.input(z4.object({ sessionId: z4.number() })).query(async ({ input, ctx }) => {
     const db = requireDb2(await getDb());
-    const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where((0, import_drizzle_orm4.eq)(chatSessions.id, input.sessionId)).limit(1);
+    const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where(eq4(chatSessions.id, input.sessionId)).limit(1);
     if (session.length === 0 || session[0].userId !== ctx.user.id) {
-      throw new import_server5.TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+      throw new TRPCError5({ code: "NOT_FOUND", message: "Session not found" });
     }
-    return db.select().from(chatMessages).where((0, import_drizzle_orm4.eq)(chatMessages.sessionId, input.sessionId)).orderBy((0, import_drizzle_orm4.asc)(chatMessages.createdAt));
+    return db.select().from(chatMessages).where(eq4(chatMessages.sessionId, input.sessionId)).orderBy(asc(chatMessages.createdAt));
   }),
-  deleteSession: protectedProcedure.input(import_zod4.z.object({ sessionId: import_zod4.z.number() })).mutation(async ({ input, ctx }) => {
+  deleteSession: protectedProcedure.input(z4.object({ sessionId: z4.number() })).mutation(async ({ input, ctx }) => {
     const db = requireDb2(await getDb());
-    const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where((0, import_drizzle_orm4.eq)(chatSessions.id, input.sessionId)).limit(1);
+    const session = await db.select({ userId: chatSessions.userId }).from(chatSessions).where(eq4(chatSessions.id, input.sessionId)).limit(1);
     if (session.length === 0 || session[0].userId !== ctx.user.id) {
-      throw new import_server5.TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+      throw new TRPCError5({ code: "NOT_FOUND", message: "Session not found" });
     }
-    await db.delete(chatMessages).where((0, import_drizzle_orm4.eq)(chatMessages.sessionId, input.sessionId));
-    await db.delete(chatSessions).where((0, import_drizzle_orm4.eq)(chatSessions.id, input.sessionId));
+    await db.delete(chatMessages).where(eq4(chatMessages.sessionId, input.sessionId));
+    await db.delete(chatSessions).where(eq4(chatSessions.id, input.sessionId));
     return { success: true };
   }),
   greeting: protectedProcedure.query(async () => {
@@ -1100,11 +1066,11 @@ var chatRouter = router({
 });
 
 // server/preferencesRouter.ts
-var import_zod5 = require("zod");
-var import_drizzle_orm5 = require("drizzle-orm");
-var import_server6 = require("@trpc/server");
+import { z as z5 } from "zod";
+import { eq as eq5 } from "drizzle-orm";
+import { TRPCError as TRPCError6 } from "@trpc/server";
 function requireDb3(db) {
-  if (!db) throw new import_server6.TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+  if (!db) throw new TRPCError6({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   return db;
 }
 var DEFAULTS = {
@@ -1119,25 +1085,25 @@ var DEFAULTS = {
 var preferencesRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
     const db = requireDb3(await getDb());
-    const result = await db.select().from(userPreferences).where((0, import_drizzle_orm5.eq)(userPreferences.userId, ctx.user.id)).limit(1);
+    const result = await db.select().from(userPreferences).where(eq5(userPreferences.userId, ctx.user.id)).limit(1);
     if (result.length === 0) {
       return { ...DEFAULTS, userId: ctx.user.id };
     }
     return result[0];
   }),
   update: protectedProcedure.input(
-    import_zod5.z.object({
-      textSize: import_zod5.z.enum(["small", "medium", "large"]).optional(),
-      volume: import_zod5.z.number().min(0).max(100).optional(),
-      ttsSpeed: import_zod5.z.string().optional(),
-      autoplay: import_zod5.z.boolean().optional(),
-      preferredLanguage: import_zod5.z.string().optional(),
-      highContrast: import_zod5.z.boolean().optional(),
-      hasSeenOnboarding: import_zod5.z.boolean().optional()
+    z5.object({
+      textSize: z5.enum(["small", "medium", "large"]).optional(),
+      volume: z5.number().min(0).max(100).optional(),
+      ttsSpeed: z5.string().optional(),
+      autoplay: z5.boolean().optional(),
+      preferredLanguage: z5.string().optional(),
+      highContrast: z5.boolean().optional(),
+      hasSeenOnboarding: z5.boolean().optional()
     })
   ).mutation(async ({ input, ctx }) => {
     const db = requireDb3(await getDb());
-    const existing = await db.select({ id: userPreferences.id }).from(userPreferences).where((0, import_drizzle_orm5.eq)(userPreferences.userId, ctx.user.id)).limit(1);
+    const existing = await db.select({ id: userPreferences.id }).from(userPreferences).where(eq5(userPreferences.userId, ctx.user.id)).limit(1);
     if (existing.length === 0) {
       await db.insert(userPreferences).values({
         userId: ctx.user.id,
@@ -1145,15 +1111,15 @@ var preferencesRouter = router({
         ...input
       });
     } else {
-      await db.update(userPreferences).set(input).where((0, import_drizzle_orm5.eq)(userPreferences.userId, ctx.user.id));
+      await db.update(userPreferences).set(input).where(eq5(userPreferences.userId, ctx.user.id));
     }
     return { success: true };
   })
 });
 
 // server/configRouter.ts
-var import_drizzle_orm6 = require("drizzle-orm");
-var import_drizzle_orm7 = require("drizzle-orm");
+import { eq as eq6, and as and3, or as or2, isNull, lte, gte } from "drizzle-orm";
+import { asc as asc2 } from "drizzle-orm";
 var configRouter = router({
   categories: publicProcedure.query(async () => {
     const db = await getDb();
@@ -1167,17 +1133,17 @@ var configRouter = router({
         { id: 0, slug: "popular", name: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", icon: "\u2B50", searchQuery: "\uC778\uAE30 \uC624\uB514\uC624\uBD81", sortOrder: 5, isActive: true }
       ];
     }
-    return db.select().from(categories).where((0, import_drizzle_orm6.eq)(categories.isActive, true)).orderBy((0, import_drizzle_orm7.asc)(categories.sortOrder));
+    return db.select().from(categories).where(eq6(categories.isActive, true)).orderBy(asc2(categories.sortOrder));
   }),
   announcements: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
     const now = /* @__PURE__ */ new Date();
     return db.select().from(announcements).where(
-      (0, import_drizzle_orm6.and)(
-        (0, import_drizzle_orm6.eq)(announcements.isActive, true),
-        (0, import_drizzle_orm6.or)((0, import_drizzle_orm6.isNull)(announcements.startAt), (0, import_drizzle_orm6.lte)(announcements.startAt, now)),
-        (0, import_drizzle_orm6.or)((0, import_drizzle_orm6.isNull)(announcements.endAt), (0, import_drizzle_orm6.gte)(announcements.endAt, now))
+      and3(
+        eq6(announcements.isActive, true),
+        or2(isNull(announcements.startAt), lte(announcements.startAt, now)),
+        or2(isNull(announcements.endAt), gte(announcements.endAt, now))
       )
     );
   }),
@@ -1191,10 +1157,10 @@ var configRouter = router({
       };
     }
     const configs = await db.select({ configKey: appConfig.configKey, configValue: appConfig.configValue }).from(appConfig).where(
-      (0, import_drizzle_orm6.or)(
-        (0, import_drizzle_orm6.eq)(appConfig.configKey, "stt.provider"),
-        (0, import_drizzle_orm6.eq)(appConfig.configKey, "stt.language"),
-        (0, import_drizzle_orm6.eq)(appConfig.configKey, "app.maintenanceMode")
+      or2(
+        eq6(appConfig.configKey, "stt.provider"),
+        eq6(appConfig.configKey, "stt.language"),
+        eq6(appConfig.configKey, "app.maintenanceMode")
       )
     );
     const configMap = new Map(configs.map((c) => [c.configKey, c.configValue]));
@@ -1207,55 +1173,55 @@ var configRouter = router({
 });
 
 // server/adminRouter.ts
-var import_zod6 = require("zod");
-var import_drizzle_orm8 = require("drizzle-orm");
-var import_server7 = require("@trpc/server");
+import { z as z6 } from "zod";
+import { eq as eq7, desc as desc3, asc as asc3, sql as sql2, and as and4, gte as gte2, like, or as or3 } from "drizzle-orm";
+import { TRPCError as TRPCError7 } from "@trpc/server";
 function requireDb4(db) {
-  if (!db) throw new import_server7.TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+  if (!db) throw new TRPCError7({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   return db;
 }
 var usersRouter = router({
   list: adminProcedure.input(
-    import_zod6.z.object({
-      limit: import_zod6.z.number().min(1).max(100).default(20),
-      offset: import_zod6.z.number().min(0).default(0),
-      search: import_zod6.z.string().optional(),
-      role: import_zod6.z.enum(["user", "admin"]).optional()
+    z6.object({
+      limit: z6.number().min(1).max(100).default(20),
+      offset: z6.number().min(0).default(0),
+      search: z6.string().optional(),
+      role: z6.enum(["user", "admin"]).optional()
     })
   ).query(async ({ input }) => {
     const db = requireDb4(await getDb());
     let query = db.select().from(users);
     const conditions = [];
-    if (input.role) conditions.push((0, import_drizzle_orm8.eq)(users.role, input.role));
+    if (input.role) conditions.push(eq7(users.role, input.role));
     if (input.search) {
       conditions.push(
-        (0, import_drizzle_orm8.or)((0, import_drizzle_orm8.like)(users.name, `%${input.search}%`), (0, import_drizzle_orm8.like)(users.email, `%${input.search}%`))
+        or3(like(users.name, `%${input.search}%`), like(users.email, `%${input.search}%`))
       );
     }
-    if (conditions.length > 0) query = query.where((0, import_drizzle_orm8.and)(...conditions));
-    const items = await query.orderBy((0, import_drizzle_orm8.desc)(users.createdAt)).limit(input.limit).offset(input.offset);
-    const [countResult] = await db.select({ count: import_drizzle_orm8.sql`count(*)` }).from(users);
+    if (conditions.length > 0) query = query.where(and4(...conditions));
+    const items = await query.orderBy(desc3(users.createdAt)).limit(input.limit).offset(input.offset);
+    const [countResult] = await db.select({ count: sql2`count(*)` }).from(users);
     return { items, total: countResult.count };
   }),
-  updateRole: adminProcedure.input(import_zod6.z.object({ userId: import_zod6.z.number(), role: import_zod6.z.enum(["user", "admin"]) })).mutation(async ({ input }) => {
+  updateRole: adminProcedure.input(z6.object({ userId: z6.number(), role: z6.enum(["user", "admin"]) })).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
-    await db.update(users).set({ role: input.role }).where((0, import_drizzle_orm8.eq)(users.id, input.userId));
+    await db.update(users).set({ role: input.role }).where(eq7(users.id, input.userId));
     return { success: true };
   })
 });
 var categoriesRouter = router({
   list: adminProcedure.query(async () => {
     const db = requireDb4(await getDb());
-    return db.select().from(categories).orderBy((0, import_drizzle_orm8.asc)(categories.sortOrder));
+    return db.select().from(categories).orderBy(asc3(categories.sortOrder));
   }),
   create: adminProcedure.input(
-    import_zod6.z.object({
-      slug: import_zod6.z.string().min(1).max(64),
-      name: import_zod6.z.string().min(1).max(100),
-      icon: import_zod6.z.string().min(1).max(10),
-      searchQuery: import_zod6.z.string().min(1).max(200),
-      sortOrder: import_zod6.z.number().default(0),
-      isActive: import_zod6.z.boolean().default(true)
+    z6.object({
+      slug: z6.string().min(1).max(64),
+      name: z6.string().min(1).max(100),
+      icon: z6.string().min(1).max(10),
+      searchQuery: z6.string().min(1).max(200),
+      sortOrder: z6.number().default(0),
+      isActive: z6.boolean().default(true)
     })
   ).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
@@ -1263,54 +1229,54 @@ var categoriesRouter = router({
     return { success: true };
   }),
   update: adminProcedure.input(
-    import_zod6.z.object({
-      id: import_zod6.z.number(),
-      slug: import_zod6.z.string().min(1).max(64).optional(),
-      name: import_zod6.z.string().min(1).max(100).optional(),
-      icon: import_zod6.z.string().min(1).max(10).optional(),
-      searchQuery: import_zod6.z.string().min(1).max(200).optional(),
-      sortOrder: import_zod6.z.number().optional(),
-      isActive: import_zod6.z.boolean().optional()
+    z6.object({
+      id: z6.number(),
+      slug: z6.string().min(1).max(64).optional(),
+      name: z6.string().min(1).max(100).optional(),
+      icon: z6.string().min(1).max(10).optional(),
+      searchQuery: z6.string().min(1).max(200).optional(),
+      sortOrder: z6.number().optional(),
+      isActive: z6.boolean().optional()
     })
   ).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
     const { id, ...data } = input;
-    await db.update(categories).set(data).where((0, import_drizzle_orm8.eq)(categories.id, id));
+    await db.update(categories).set(data).where(eq7(categories.id, id));
     return { success: true };
   }),
-  delete: adminProcedure.input(import_zod6.z.object({ id: import_zod6.z.number() })).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z6.object({ id: z6.number() })).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
-    await db.delete(categories).where((0, import_drizzle_orm8.eq)(categories.id, input.id));
+    await db.delete(categories).where(eq7(categories.id, input.id));
     return { success: true };
   }),
-  reorder: adminProcedure.input(import_zod6.z.array(import_zod6.z.object({ id: import_zod6.z.number(), sortOrder: import_zod6.z.number() }))).mutation(async ({ input }) => {
+  reorder: adminProcedure.input(z6.array(z6.object({ id: z6.number(), sortOrder: z6.number() }))).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
     for (const item of input) {
-      await db.update(categories).set({ sortOrder: item.sortOrder }).where((0, import_drizzle_orm8.eq)(categories.id, item.id));
+      await db.update(categories).set({ sortOrder: item.sortOrder }).where(eq7(categories.id, item.id));
     }
     return { success: true };
   })
 });
 var curatedRouter = router({
-  list: adminProcedure.input(import_zod6.z.object({ categorySlug: import_zod6.z.string().optional() })).query(async ({ input }) => {
+  list: adminProcedure.input(z6.object({ categorySlug: z6.string().optional() })).query(async ({ input }) => {
     const db = requireDb4(await getDb());
     let query = db.select().from(curatedContent);
     if (input.categorySlug) {
-      query = query.where((0, import_drizzle_orm8.eq)(curatedContent.categorySlug, input.categorySlug));
+      query = query.where(eq7(curatedContent.categorySlug, input.categorySlug));
     }
-    return query.orderBy((0, import_drizzle_orm8.asc)(curatedContent.sortOrder));
+    return query.orderBy(asc3(curatedContent.sortOrder));
   }),
   create: adminProcedure.input(
-    import_zod6.z.object({
-      categorySlug: import_zod6.z.string(),
-      videoId: import_zod6.z.string(),
-      title: import_zod6.z.string(),
-      channelName: import_zod6.z.string().optional(),
-      thumbnailUrl: import_zod6.z.string().optional(),
-      duration: import_zod6.z.string().optional(),
-      description: import_zod6.z.string().optional(),
-      sortOrder: import_zod6.z.number().default(0),
-      isActive: import_zod6.z.boolean().default(true)
+    z6.object({
+      categorySlug: z6.string(),
+      videoId: z6.string(),
+      title: z6.string(),
+      channelName: z6.string().optional(),
+      thumbnailUrl: z6.string().optional(),
+      duration: z6.string().optional(),
+      description: z6.string().optional(),
+      sortOrder: z6.number().default(0),
+      isActive: z6.boolean().default(true)
     })
   ).mutation(async ({ input, ctx }) => {
     const db = requireDb4(await getDb());
@@ -1318,38 +1284,38 @@ var curatedRouter = router({
     return { success: true };
   }),
   update: adminProcedure.input(
-    import_zod6.z.object({
-      id: import_zod6.z.number(),
-      categorySlug: import_zod6.z.string().optional(),
-      title: import_zod6.z.string().optional(),
-      description: import_zod6.z.string().optional(),
-      sortOrder: import_zod6.z.number().optional(),
-      isActive: import_zod6.z.boolean().optional()
+    z6.object({
+      id: z6.number(),
+      categorySlug: z6.string().optional(),
+      title: z6.string().optional(),
+      description: z6.string().optional(),
+      sortOrder: z6.number().optional(),
+      isActive: z6.boolean().optional()
     })
   ).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
     const { id, ...data } = input;
-    await db.update(curatedContent).set(data).where((0, import_drizzle_orm8.eq)(curatedContent.id, id));
+    await db.update(curatedContent).set(data).where(eq7(curatedContent.id, id));
     return { success: true };
   }),
-  delete: adminProcedure.input(import_zod6.z.object({ id: import_zod6.z.number() })).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z6.object({ id: z6.number() })).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
-    await db.delete(curatedContent).where((0, import_drizzle_orm8.eq)(curatedContent.id, input.id));
+    await db.delete(curatedContent).where(eq7(curatedContent.id, input.id));
     return { success: true };
   }),
-  searchYouTube: adminProcedure.input(import_zod6.z.object({ query: import_zod6.z.string(), maxResults: import_zod6.z.number().default(10) })).query(({ input }) => searchVideos(input.query, input.maxResults))
+  searchYouTube: adminProcedure.input(z6.object({ query: z6.string(), maxResults: z6.number().default(10) })).query(({ input }) => searchVideos(input.query, input.maxResults))
 });
 var configAdminRouter = router({
   list: adminProcedure.query(async () => {
     const db = requireDb4(await getDb());
     return db.select().from(appConfig);
   }),
-  get: adminProcedure.input(import_zod6.z.object({ key: import_zod6.z.string() })).query(async ({ input }) => {
+  get: adminProcedure.input(z6.object({ key: z6.string() })).query(async ({ input }) => {
     const db = requireDb4(await getDb());
-    const result = await db.select().from(appConfig).where((0, import_drizzle_orm8.eq)(appConfig.configKey, input.key)).limit(1);
+    const result = await db.select().from(appConfig).where(eq7(appConfig.configKey, input.key)).limit(1);
     return result[0] ?? null;
   }),
-  update: adminProcedure.input(import_zod6.z.object({ key: import_zod6.z.string(), value: import_zod6.z.string(), description: import_zod6.z.string().optional() })).mutation(async ({ input, ctx }) => {
+  update: adminProcedure.input(z6.object({ key: z6.string(), value: z6.string(), description: z6.string().optional() })).mutation(async ({ input, ctx }) => {
     const db = requireDb4(await getDb());
     await db.insert(appConfig).values({
       configKey: input.key,
@@ -1370,16 +1336,16 @@ var configAdminRouter = router({
 var announcementsRouter = router({
   list: adminProcedure.query(async () => {
     const db = requireDb4(await getDb());
-    return db.select().from(announcements).orderBy((0, import_drizzle_orm8.desc)(announcements.createdAt));
+    return db.select().from(announcements).orderBy(desc3(announcements.createdAt));
   }),
   create: adminProcedure.input(
-    import_zod6.z.object({
-      title: import_zod6.z.string().min(1).max(200),
-      content: import_zod6.z.string().min(1),
-      type: import_zod6.z.enum(["info", "warning", "urgent"]).default("info"),
-      isActive: import_zod6.z.boolean().default(true),
-      startAt: import_zod6.z.string().datetime().optional(),
-      endAt: import_zod6.z.string().datetime().optional()
+    z6.object({
+      title: z6.string().min(1).max(200),
+      content: z6.string().min(1),
+      type: z6.enum(["info", "warning", "urgent"]).default("info"),
+      isActive: z6.boolean().default(true),
+      startAt: z6.string().datetime().optional(),
+      endAt: z6.string().datetime().optional()
     })
   ).mutation(async ({ input, ctx }) => {
     const db = requireDb4(await getDb());
@@ -1392,14 +1358,14 @@ var announcementsRouter = router({
     return { success: true };
   }),
   update: adminProcedure.input(
-    import_zod6.z.object({
-      id: import_zod6.z.number(),
-      title: import_zod6.z.string().min(1).max(200).optional(),
-      content: import_zod6.z.string().optional(),
-      type: import_zod6.z.enum(["info", "warning", "urgent"]).optional(),
-      isActive: import_zod6.z.boolean().optional(),
-      startAt: import_zod6.z.string().datetime().nullable().optional(),
-      endAt: import_zod6.z.string().datetime().nullable().optional()
+    z6.object({
+      id: z6.number(),
+      title: z6.string().min(1).max(200).optional(),
+      content: z6.string().optional(),
+      type: z6.enum(["info", "warning", "urgent"]).optional(),
+      isActive: z6.boolean().optional(),
+      startAt: z6.string().datetime().nullable().optional(),
+      endAt: z6.string().datetime().nullable().optional()
     })
   ).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
@@ -1407,12 +1373,12 @@ var announcementsRouter = router({
     const data = { ...rest };
     if (startAt !== void 0) data.startAt = startAt ? new Date(startAt) : null;
     if (endAt !== void 0) data.endAt = endAt ? new Date(endAt) : null;
-    await db.update(announcements).set(data).where((0, import_drizzle_orm8.eq)(announcements.id, id));
+    await db.update(announcements).set(data).where(eq7(announcements.id, id));
     return { success: true };
   }),
-  delete: adminProcedure.input(import_zod6.z.object({ id: import_zod6.z.number() })).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z6.object({ id: z6.number() })).mutation(async ({ input }) => {
     const db = requireDb4(await getDb());
-    await db.delete(announcements).where((0, import_drizzle_orm8.eq)(announcements.id, input.id));
+    await db.delete(announcements).where(eq7(announcements.id, input.id));
     return { success: true };
   })
 });
@@ -1421,10 +1387,10 @@ var analyticsRouter = router({
     const db = requireDb4(await getDb());
     const today = /* @__PURE__ */ new Date();
     today.setHours(0, 0, 0, 0);
-    const [totalUsers] = await db.select({ count: import_drizzle_orm8.sql`count(*)` }).from(users);
-    const [todaySearches] = await db.select({ count: import_drizzle_orm8.sql`count(*)` }).from(searchLogs).where((0, import_drizzle_orm8.gte)(searchLogs.createdAt, today));
-    const [totalBookmarks] = await db.select({ count: import_drizzle_orm8.sql`count(*)` }).from(bookmarks);
-    const [activeAnnouncements] = await db.select({ count: import_drizzle_orm8.sql`count(*)` }).from(announcements).where((0, import_drizzle_orm8.eq)(announcements.isActive, true));
+    const [totalUsers] = await db.select({ count: sql2`count(*)` }).from(users);
+    const [todaySearches] = await db.select({ count: sql2`count(*)` }).from(searchLogs).where(gte2(searchLogs.createdAt, today));
+    const [totalBookmarks] = await db.select({ count: sql2`count(*)` }).from(bookmarks);
+    const [activeAnnouncements] = await db.select({ count: sql2`count(*)` }).from(announcements).where(eq7(announcements.isActive, true));
     return {
       totalUsers: totalUsers.count,
       todaySearches: todaySearches.count,
@@ -1433,48 +1399,48 @@ var analyticsRouter = router({
     };
   }),
   searchLogs: adminProcedure.input(
-    import_zod6.z.object({
-      days: import_zod6.z.number().min(1).max(90).default(30),
-      limit: import_zod6.z.number().min(1).max(100).default(50)
+    z6.object({
+      days: z6.number().min(1).max(90).default(30),
+      limit: z6.number().min(1).max(100).default(50)
     })
   ).query(async ({ input }) => {
     const db = requireDb4(await getDb());
     const since = /* @__PURE__ */ new Date();
     since.setDate(since.getDate() - input.days);
     const dailyCounts = await db.select({
-      date: import_drizzle_orm8.sql`DATE(${searchLogs.createdAt})`,
-      count: import_drizzle_orm8.sql`count(*)`,
-      voiceCount: import_drizzle_orm8.sql`SUM(CASE WHEN ${searchLogs.source} = 'voice' THEN 1 ELSE 0 END)`,
-      textCount: import_drizzle_orm8.sql`SUM(CASE WHEN ${searchLogs.source} = 'text' THEN 1 ELSE 0 END)`
-    }).from(searchLogs).where((0, import_drizzle_orm8.gte)(searchLogs.createdAt, since)).groupBy(import_drizzle_orm8.sql`DATE(${searchLogs.createdAt})`).orderBy(import_drizzle_orm8.sql`DATE(${searchLogs.createdAt})`);
+      date: sql2`DATE(${searchLogs.createdAt})`,
+      count: sql2`count(*)`,
+      voiceCount: sql2`SUM(CASE WHEN ${searchLogs.source} = 'voice' THEN 1 ELSE 0 END)`,
+      textCount: sql2`SUM(CASE WHEN ${searchLogs.source} = 'text' THEN 1 ELSE 0 END)`
+    }).from(searchLogs).where(gte2(searchLogs.createdAt, since)).groupBy(sql2`DATE(${searchLogs.createdAt})`).orderBy(sql2`DATE(${searchLogs.createdAt})`);
     const topQueries = await db.select({
       query: searchLogs.query,
-      count: import_drizzle_orm8.sql`count(*)`
-    }).from(searchLogs).where((0, import_drizzle_orm8.gte)(searchLogs.createdAt, since)).groupBy(searchLogs.query).orderBy((0, import_drizzle_orm8.desc)(import_drizzle_orm8.sql`count(*)`)).limit(input.limit);
+      count: sql2`count(*)`
+    }).from(searchLogs).where(gte2(searchLogs.createdAt, since)).groupBy(searchLogs.query).orderBy(desc3(sql2`count(*)`)).limit(input.limit);
     return { dailyCounts, topQueries };
   }),
-  userActivity: adminProcedure.input(import_zod6.z.object({ days: import_zod6.z.number().min(1).max(90).default(30) })).query(async ({ input }) => {
+  userActivity: adminProcedure.input(z6.object({ days: z6.number().min(1).max(90).default(30) })).query(async ({ input }) => {
     const db = requireDb4(await getDb());
     const since = /* @__PURE__ */ new Date();
     since.setDate(since.getDate() - input.days);
     const signups = await db.select({
-      date: import_drizzle_orm8.sql`DATE(${users.createdAt})`,
-      count: import_drizzle_orm8.sql`count(*)`
-    }).from(users).where((0, import_drizzle_orm8.gte)(users.createdAt, since)).groupBy(import_drizzle_orm8.sql`DATE(${users.createdAt})`).orderBy(import_drizzle_orm8.sql`DATE(${users.createdAt})`);
+      date: sql2`DATE(${users.createdAt})`,
+      count: sql2`count(*)`
+    }).from(users).where(gte2(users.createdAt, since)).groupBy(sql2`DATE(${users.createdAt})`).orderBy(sql2`DATE(${users.createdAt})`);
     return { signups };
   }),
-  popularContent: adminProcedure.input(import_zod6.z.object({ limit: import_zod6.z.number().min(1).max(50).default(10) })).query(async ({ input }) => {
+  popularContent: adminProcedure.input(z6.object({ limit: z6.number().min(1).max(50).default(10) })).query(async ({ input }) => {
     const db = requireDb4(await getDb());
     const topBookmarked = await db.select({
       videoId: bookmarks.videoId,
       title: bookmarks.title,
-      count: import_drizzle_orm8.sql`count(*)`
-    }).from(bookmarks).groupBy(bookmarks.videoId, bookmarks.title).orderBy((0, import_drizzle_orm8.desc)(import_drizzle_orm8.sql`count(*)`)).limit(input.limit);
+      count: sql2`count(*)`
+    }).from(bookmarks).groupBy(bookmarks.videoId, bookmarks.title).orderBy(desc3(sql2`count(*)`)).limit(input.limit);
     const topPlayed = await db.select({
       videoId: listeningHistory.videoId,
       title: listeningHistory.title,
-      count: import_drizzle_orm8.sql`count(*)`
-    }).from(listeningHistory).groupBy(listeningHistory.videoId, listeningHistory.title).orderBy((0, import_drizzle_orm8.desc)(import_drizzle_orm8.sql`count(*)`)).limit(input.limit);
+      count: sql2`count(*)`
+    }).from(listeningHistory).groupBy(listeningHistory.videoId, listeningHistory.title).orderBy(desc3(sql2`count(*)`)).limit(input.limit);
     return { topBookmarked, topPlayed };
   })
 });
@@ -1499,11 +1465,11 @@ var appRouter = router({
     })
   }),
   youtube: router({
-    search: publicProcedure.input(import_zod7.z.object({ query: import_zod7.z.string(), maxResults: import_zod7.z.number().optional(), order: import_zod7.z.string().optional(), pageToken: import_zod7.z.string().optional() })).query(({ input }) => searchVideos(input.query, input.maxResults, void 0, void 0, input.order, input.pageToken)),
-    videosBatch: publicProcedure.input(import_zod7.z.object({ videoIds: import_zod7.z.array(import_zod7.z.string()).max(50) })).query(({ input }) => getVideoDetailsBatch(input.videoIds)),
-    video: publicProcedure.input(import_zod7.z.object({ videoId: import_zod7.z.string() })).query(({ input }) => getVideoDetails(input.videoId)),
-    channel: publicProcedure.input(import_zod7.z.object({ channelId: import_zod7.z.string() })).query(({ input }) => getChannelDetails(input.channelId)),
-    playlist: publicProcedure.input(import_zod7.z.object({ playlistId: import_zod7.z.string(), maxResults: import_zod7.z.number().optional() })).query(({ input }) => getPlaylistItems(input.playlistId, input.maxResults))
+    search: publicProcedure.input(z7.object({ query: z7.string(), maxResults: z7.number().optional(), order: z7.string().optional(), pageToken: z7.string().optional() })).query(({ input }) => searchVideos(input.query, input.maxResults, void 0, void 0, input.order, input.pageToken)),
+    videosBatch: publicProcedure.input(z7.object({ videoIds: z7.array(z7.string()).max(50) })).query(({ input }) => getVideoDetailsBatch(input.videoIds)),
+    video: publicProcedure.input(z7.object({ videoId: z7.string() })).query(({ input }) => getVideoDetails(input.videoId)),
+    channel: publicProcedure.input(z7.object({ channelId: z7.string() })).query(({ input }) => getChannelDetails(input.channelId)),
+    playlist: publicProcedure.input(z7.object({ playlistId: z7.string(), maxResults: z7.number().optional() })).query(({ input }) => getPlaylistItems(input.playlistId, input.maxResults))
   }),
   voice: voiceRouter,
   library: libraryRouter,
@@ -1524,9 +1490,9 @@ var HttpError = class extends Error {
 var ForbiddenError = (msg) => new HttpError(403, msg);
 
 // server/_core/sdk.ts
-var import_axios = __toESM(require("axios"), 1);
-var import_cookie = require("cookie");
-var import_jose = require("jose");
+import axios from "axios";
+import { parse as parseCookieHeader } from "cookie";
+import { SignJWT, jwtVerify } from "jose";
 var isNonEmptyString2 = (value) => typeof value === "string" && value.length > 0;
 var EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 var GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
@@ -1568,7 +1534,7 @@ var OAuthService = class {
     return data;
   }
 };
-var createOAuthHttpClient = () => import_axios.default.create({
+var createOAuthHttpClient = () => axios.create({
   baseURL: ENV.oAuthServerUrl,
   timeout: AXIOS_TIMEOUT_MS
 });
@@ -1625,7 +1591,7 @@ var SDKServer = class {
     if (!cookieHeader) {
       return /* @__PURE__ */ new Map();
     }
-    const parsed = (0, import_cookie.parse)(cookieHeader);
+    const parsed = parseCookieHeader(cookieHeader);
     return new Map(Object.entries(parsed));
   }
   getSessionSecret() {
@@ -1652,7 +1618,7 @@ var SDKServer = class {
     const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
     const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1e3);
     const secretKey = this.getSessionSecret();
-    return new import_jose.SignJWT({
+    return new SignJWT({
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name
@@ -1665,7 +1631,7 @@ var SDKServer = class {
     }
     try {
       const secretKey = this.getSessionSecret();
-      const { payload } = await (0, import_jose.jwtVerify)(cookieValue, secretKey, {
+      const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"]
       });
       const { openId, appId, name } = payload;
@@ -1770,7 +1736,7 @@ async function handler(req, res) {
     headers,
     body: req.method !== "GET" && req.method !== "HEAD" ? JSON.stringify(req.body) : void 0
   });
-  const fetchRes = await (0, import_fetch.fetchRequestHandler)({
+  const fetchRes = await fetchRequestHandler({
     endpoint: "/api/trpc",
     req: fetchReq,
     router: appRouter,
@@ -1783,3 +1749,6 @@ async function handler(req, res) {
   const body = await fetchRes.text();
   res.send(body);
 }
+export {
+  handler as default
+};

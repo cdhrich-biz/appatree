@@ -8,7 +8,7 @@ await build({
   bundle: true,
   platform: "node",
   target: "node18",
-  format: "cjs",
+  format: "esm",
   outfile: "api/trpc/[trpc].js",
   packages: "external",
 });
