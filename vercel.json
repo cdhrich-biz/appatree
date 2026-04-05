@@ -1,0 +1,15 @@
+{
+  "buildCommand": "vite build",
+  "outputDirectory": "dist/public",
+  "installCommand": "pnpm install",
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@latest",
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/trpc/:path*", "destination": "/api/trpc/[trpc]" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
