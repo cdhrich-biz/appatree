@@ -152,6 +152,7 @@ export async function searchVideos(
     safeSearch: config.safeSearch,
     relevanceLanguage: config.relevanceLanguage,
     videoDuration: "long",
+    videoEmbeddable: "true",
     order: orderVal,
   };
   if (pageToken) params.pageToken = pageToken;

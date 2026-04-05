@@ -517,6 +517,7 @@ async function searchVideos(query, maxResults, userId, source, order, pageToken)
     safeSearch: config.safeSearch,
     relevanceLanguage: config.relevanceLanguage,
     videoDuration: "long",
+    videoEmbeddable: "true",
     order: orderVal
   };
   if (pageToken) params.pageToken = pageToken;
