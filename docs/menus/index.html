@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPATREE - 사이트맵</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-hover': '#145218',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-size: 18px; line-height: 1.8; }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+  <div class="max-w-md mx-auto bg-white min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary text-white px-6 py-5">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🎧</span>
+        <div>
+          <h1 class="text-2xl font-bold">아빠트리</h1>
+          <p class="text-sm opacity-80">APPATREE 사이트맵</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sitemap -->
+    <main class="p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">배포 메뉴 구조</h2>
+      <p class="text-gray-600 mb-6">각 화면을 클릭하면 HTML 프로토타입을 확인할 수 있습니다.</p>
+
+      <div class="space-y-4">
+        <!-- Home -->
+        <a href="home.html" class="block bg-green-50 border-2 border-green-200 rounded-2xl p-5 hover:bg-green-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">🏠</span>
+            <div>
+              <h3 class="text-xl font-bold text-primary">홈</h3>
+              <p class="text-gray-600">음성 검색 + 카테고리 그리드 + 하단 탭 바</p>
+              <span class="text-sm text-gray-400">경로: /</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Search -->
+        <a href="search.html" class="block bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 hover:bg-blue-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">🔍</span>
+            <div>
+              <h3 class="text-xl font-bold text-blue-700">검색 결과</h3>
+              <p class="text-gray-600">검색 입력 + 정렬 + 결과 카드 목록</p>
+              <span class="text-sm text-gray-400">경로: /search</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Player -->
+        <a href="player.html" class="block bg-purple-50 border-2 border-purple-200 rounded-2xl p-5 hover:bg-purple-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">▶️</span>
+            <div>
+              <h3 class="text-xl font-bold text-purple-700">플레이어</h3>
+              <p class="text-gray-600">YouTube 플레이어 + 컨트롤 바 + 재생 속도</p>
+              <span class="text-sm text-gray-400">경로: /player</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- AI Chat -->
+        <a href="chat.html" class="block bg-orange-50 border-2 border-orange-200 rounded-2xl p-5 hover:bg-orange-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">💬</span>
+            <div>
+              <h3 class="text-xl font-bold text-orange-700">AI 채팅</h3>
+              <p class="text-gray-600">AI 추천 상담 + 프리셋 + 음성 입력</p>
+              <span class="text-sm text-gray-400">경로: /chat</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Library -->
+        <a href="library.html" class="block bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-5 hover:bg-yellow-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">📚</span>
+            <div>
+              <h3 class="text-xl font-bold text-yellow-700">내 서재</h3>
+              <p class="text-gray-600">즐겨찾기 + 최근 재생 탭</p>
+              <span class="text-sm text-gray-400">경로: /library</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Settings -->
+        <a href="settings.html" class="block bg-gray-50 border-2 border-gray-200 rounded-2xl p-5 hover:bg-gray-100 transition-colors">
+          <div class="flex items-center gap-4">
+            <span class="text-3xl">⚙️</span>
+            <div>
+              <h3 class="text-xl font-bold text-gray-700">설정</h3>
+              <p class="text-gray-600">글씨 크기 + 음량 + 음성 속도 + 자동재생</p>
+              <span class="text-sm text-gray-400">경로: /settings</span>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Flow -->
+      <div class="mt-8 p-5 bg-gray-50 rounded-2xl">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">네비게이션 흐름</h3>
+        <pre class="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
+홈 ──→ 음성 검색 ──→ 검색 결과 ──→ 플레이어
+ │                        │
+ ├──→ 카테고리 ──→ 검색 결과
+ │
+ ├──→ AI 채팅 ──→ 추천 결과 ──→ 플레이어
+ │
+ ├──→ 내 서재 ──→ 즐겨찾기/최근 ──→ 플레이어
+ │
+ └──→ 설정
+        </pre>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

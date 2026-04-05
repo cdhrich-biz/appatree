@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPATREE - 설정</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-hover': '#145218',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-size: 18px; line-height: 1.8; }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+  <div class="max-w-md mx-auto bg-white min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="flex items-center gap-3 px-4 py-4 border-b border-gray-200">
+      <a href="home.html" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100" aria-label="뒤로가기">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </a>
+      <h1 class="text-xl font-bold text-gray-800">설정</h1>
+    </header>
+
+    <!-- Settings Content -->
+    <main class="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+
+      <!-- Text Size -->
+      <section>
+        <div class="flex items-center gap-3 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2">
+            <polyline points="4 7 4 4 20 4 20 7"></polyline>
+            <line x1="9" y1="20" x2="15" y2="20"></line>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+          </svg>
+          <h2 class="text-xl font-bold text-gray-800">글씨 ��기</h2>
+        </div>
+        <div class="flex gap-3">
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="fontSize" class="sr-only peer">
+            <div class="text-center py-4 border-2 border-gray-200 rounded-2xl peer-checked:border-primary peer-checked:bg-green-50 hover:bg-gray-50 transition-colors min-h-[56px]">
+              <span class="text-base text-gray-700">작게</span>
+              <p class="text-sm text-gray-400">18px</p>
+            </div>
+          </label>
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="fontSize" checked class="sr-only peer">
+            <div class="text-center py-4 border-2 border-primary bg-green-50 rounded-2xl min-h-[56px]">
+              <span class="text-lg font-bold text-primary">보통</span>
+              <p class="text-sm text-primary">20px</p>
+            </div>
+          </label>
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="fontSize" class="sr-only peer">
+            <div class="text-center py-4 border-2 border-gray-200 rounded-2xl peer-checked:border-primary peer-checked:bg-green-50 hover:bg-gray-50 transition-colors min-h-[56px]">
+              <span class="text-xl text-gray-700">크게</span>
+              <p class="text-sm text-gray-400">24px</p>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Volume -->
+      <section>
+        <div class="flex items-center gap-3 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <h2 class="text-xl font-bold text-gray-800">음량</h2>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex-1 relative">
+            <div class="h-3 bg-gray-200 rounded-full">
+              <div class="h-full bg-primary rounded-full" style="width: 70%;"></div>
+            </div>
+            <div class="absolute h-6 w-6 bg-primary rounded-full shadow-md top-1/2 -translate-y-1/2" style="left: 70%; transform: translate(-50%, -50%);"></div>
+          </div>
+          <span class="text-lg font-bold text-gray-700 w-14 text-right">70%</span>
+        </div>
+      </section>
+
+      <!-- TTS Speed -->
+      <section>
+        <div class="flex items-center gap-3 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <h2 class="text-xl font-bold text-gray-800">음성 속도</h2>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <label class="cursor-pointer">
+            <input type="radio" name="ttsSpeed" class="sr-only peer">
+            <div class="text-center py-3 border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-green-50 hover:bg-gray-50 transition-colors min-h-[48px]">
+              <span class="text-base text-gray-700">느림</span>
+              <p class="text-sm text-gray-400">0.75x</p>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="ttsSpeed" checked class="sr-only peer">
+            <div class="text-center py-3 border-2 border-primary bg-green-50 rounded-xl min-h-[48px]">
+              <span class="text-base font-bold text-primary">보통</span>
+              <p class="text-sm text-primary">0.9x</p>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="ttsSpeed" class="sr-only peer">
+            <div class="text-center py-3 border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-green-50 hover:bg-gray-50 transition-colors min-h-[48px]">
+              <span class="text-base text-gray-700">표준</span>
+              <p class="text-sm text-gray-400">1.0x</p>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="ttsSpeed" class="sr-only peer">
+            <div class="text-center py-3 border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-green-50 hover:bg-gray-50 transition-colors min-h-[48px]">
+              <span class="text-base text-gray-700">빠름</span>
+              <p class="text-sm text-gray-400">1.25x</p>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Autoplay -->
+      <section>
+        <div class="flex items-center justify-between py-4 border-2 border-gray-200 rounded-2xl px-5 min-h-[56px]">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <div>
+              <p class="text-lg font-bold text-gray-800">자동재생</p>
+              <p class="text-sm text-gray-500">다음 오디오북 자동 재생</p>
+            </div>
+          </div>
+          <div class="w-14 h-8 bg-primary rounded-full relative cursor-pointer">
+            <div class="absolute right-1 top-1 w-6 h-6 bg-white rounded-full shadow transition-all"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- App Info -->
+      <section class="bg-gray-50 rounded-2xl p-5">
+        <h2 class="text-lg font-bold text-gray-800 mb-2">앱 정보</h2>
+        <div class="space-y-2 text-base text-gray-600">
+          <div class="flex justify-between">
+            <span>앱 이름</span>
+            <span class="font-semibold text-gray-800">APPATREE (아빠트리)</span>
+          </div>
+          <div class="flex justify-between">
+            <span>버전</span>
+            <span class="font-semibold text-gray-800">1.0.0</span>
+          </div>
+          <p class="text-sm text-gray-400 mt-2">시니어를 위한 음성 기반 오디오북 검색 및 재생 앱</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Save Button -->
+    <div class="px-6 py-4 border-t border-gray-200">
+      <a href="home.html" class="block w-full py-4 bg-primary text-white text-center text-xl font-bold rounded-2xl hover:bg-primary-hover transition-colors min-h-[56px]">
+        저장 및 돌아가기
+      </a>
+    </div>
+  </div>
+</body>
+</html>

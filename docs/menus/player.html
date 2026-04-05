@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPATREE - 플레이어</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-hover': '#145218',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-size: 18px; line-height: 1.8; }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+  <div class="max-w-md mx-auto bg-white min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="flex items-center gap-3 px-4 py-4 border-b border-gray-200">
+      <a href="search.html" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100" aria-label="뒤로가기">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </a>
+      <h1 class="text-xl font-bold text-gray-800">오디오북 플레이어</h1>
+    </header>
+
+    <!-- Video Area -->
+    <div class="bg-black aspect-video flex items-center justify-center">
+      <div class="text-center text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto mb-2 opacity-50">
+          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+          <line x1="17" y1="2" x2="17" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <line x1="2" y1="7" x2="7" y2="7"></line>
+          <line x1="2" y1="17" x2="7" y2="17"></line>
+          <line x1="17" y1="7" x2="22" y2="7"></line>
+          <line x1="17" y1="17" x2="22" y2="17"></line>
+        </svg>
+        <p class="text-sm opacity-50">YouTube IFrame Player 영역</p>
+      </div>
+    </div>
+
+    <!-- Video Info -->
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-xl font-bold text-gray-800">삼국지 완독 오디오북 - 전체 낭독</h2>
+      <p class="text-base text-gray-500 mt-1">한국 오디오북 채널</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="px-6 py-4">
+      <div class="relative h-3 bg-gray-200 rounded-full cursor-pointer" style="min-height: 48px; display: flex; align-items: center;">
+        <div class="absolute inset-y-0 flex items-center w-full">
+          <div class="h-3 bg-primary rounded-full" style="width: 35%;"></div>
+        </div>
+        <div class="absolute h-6 w-6 bg-primary rounded-full shadow-md" style="left: 35%; transform: translateX(-50%);"></div>
+      </div>
+      <div class="flex justify-between mt-2 text-base text-gray-500">
+        <span>4:22:15</span>
+        <span>12:34:56</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="px-6 pb-4">
+      <!-- Main Controls -->
+      <div class="flex items-center justify-center gap-8 mb-6">
+        <!-- Skip Back 30s -->
+        <button class="w-16 h-16 flex flex-col items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" aria-label="30초 되감기">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span class="text-xs text-gray-500 font-bold">30s</span>
+        </button>
+
+        <!-- Play/Pause -->
+        <button class="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary-hover transition-colors" aria-label="일시정지">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+        </button>
+
+        <!-- Skip Forward 30s -->
+        <button class="w-16 h-16 flex flex-col items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" aria-label="30초 건너뛰기">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span class="text-xs text-gray-500 font-bold">30s</span>
+        </button>
+      </div>
+
+      <!-- Playback Speed -->
+      <div class="mb-6">
+        <p class="text-base text-gray-500 text-center mb-3">재생 속도</p>
+        <div class="flex justify-center gap-3">
+          <button class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl text-base hover:bg-gray-200 transition-colors min-h-[48px]">0.75x<br><span class="text-sm text-gray-400">느림</span></button>
+          <button class="px-5 py-3 bg-primary text-white rounded-xl text-base font-bold min-h-[48px]">1.0x<br><span class="text-sm opacity-80">표준</span></button>
+          <button class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl text-base hover:bg-gray-200 transition-colors min-h-[48px]">1.25x<br><span class="text-sm text-gray-400">빠름</span></button>
+        </div>
+      </div>
+
+      <!-- Volume -->
+      <div>
+        <div class="flex items-center gap-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <div class="flex-1 h-3 bg-gray-200 rounded-full relative">
+            <div class="h-full bg-primary rounded-full" style="width: 70%;"></div>
+            <div class="absolute h-5 w-5 bg-primary rounded-full shadow-md top-1/2 -translate-y-1/2" style="left: 70%; transform: translate(-50%, -50%);"></div>
+          </div>
+          <span class="text-base text-gray-500 w-12 text-right">70%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="mt-auto border-t border-gray-200 bg-white">
+      <div class="flex">
+        <a href="home.html" class="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span class="text-sm mt-1">홈</span>
+        </a>
+        <a href="search.html" class="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span class="text-sm mt-1">검색</span>
+        </a>
+        <a href="chat.html" class="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span class="text-sm mt-1">AI 채팅</span>
+        </a>
+        <a href="library.html" class="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <span class="text-sm mt-1">내 서재</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+</body>
+</html>

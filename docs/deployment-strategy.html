@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPATREE - 배포 전략</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-hover': '#145218',
+            vercel: '#000000',
+            cloudflare: '#F6821F',
+            flyio: '#7B3FE4',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-size: 17px; line-height: 1.75; }
+    .diagram { font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; }
+    code { font-family: 'Courier New', monospace; font-size: 15px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Top Nav -->
+  <nav class="bg-primary text-white sticky top-0 z-50 shadow-md">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="menus/index.html" class="hover:opacity-80 transition-opacity" aria-label="사이트맵으로">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
+        <span class="text-2xl">🎧</span>
+        <h1 class="text-xl font-bold">APPATREE 배포 전략</h1>
+      </div>
+      <span class="text-sm opacity-70">v1.0.0</span>
+    </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto px-6 py-8">
+
+    <!-- Section 1: Overview -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">1</span>
+        개요
+      </h2>
+      <p class="text-gray-700">
+        APPATREE는 <strong>React 19 + Vite</strong> 프론트엔드와 <strong>Express.js + tRPC</strong> 백엔드로 구성된 풀스택 모노리스 앱이다.
+        배포 시 프론트엔드(SPA)와 백엔드(API 서버)를 함께 서빙해야 한다.
+      </p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">React 19</span>
+        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">Vite 7</span>
+        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Express.js</span>
+        <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">tRPC</span>
+        <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">MySQL</span>
+        <span class="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-sm font-medium">Tailwind CSS 4</span>
+      </div>
+    </section>
+
+    <!-- Section 2: Comparison -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">2</span>
+        플랫폼 비교: Vercel vs Cloudflare
+      </h2>
+
+      <!-- Comparison Table -->
+      <div class="overflow-x-auto mb-8">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="px-4 py-3 text-base font-bold text-gray-700 rounded-tl-xl">항목</th>
+              <th class="px-4 py-3 text-base font-bold text-gray-700">
+                <span class="flex items-center gap-2">
+                  <span class="w-3 h-3 bg-black rounded-full"></span> Vercel
+                </span>
+              </th>
+              <th class="px-4 py-3 text-base font-bold text-gray-700 rounded-tr-xl">
+                <span class="flex items-center gap-2">
+                  <span class="w-3 h-3 bg-cloudflare rounded-full"></span> Cloudflare
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="text-[15px]">
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 font-semibold text-gray-800">Express.js 호환</td>
+              <td class="px-4 py-3 text-green-700"><code>@vercel/node</code> 어댑터로 가능</td>
+              <td class="px-4 py-3 text-red-600 font-semibold">불가 (V8 isolate)</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-3 font-semibold text-gray-800">MySQL 연결</td>
+              <td class="px-4 py-3 text-yellow-700">Serverless pooling 필요</td>
+              <td class="px-4 py-3 text-red-600">Hyperdrive 필요, mysql2 호환 불안정</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 font-semibold text-gray-800">한국 리전</td>
+              <td class="px-4 py-3 text-green-700">서울 엣지 노드</td>
+              <td class="px-4 py-3 text-green-700">서울 포함 300+ 엣지</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-3 font-semibold text-gray-800">Cold Start</td>
+              <td class="px-4 py-3 text-yellow-700">250-500ms</td>
+              <td class="px-4 py-3 text-green-700">~5ms (Workers)</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 font-semibold text-gray-800">리팩터링 비용</td>
+              <td class="px-4 py-3 text-green-700 font-semibold">1-2일</td>
+              <td class="px-4 py-3 text-red-600 font-semibold">2-4주 (전면 재작성)</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-3 font-semibold text-gray-800">무료 티어</td>
+              <td class="px-4 py-3">100GB 대역폭, 100GB-hrs</td>
+              <td class="px-4 py-3">100K req/day, 무제한 정적</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 font-semibold text-gray-800">PWA 지원</td>
+              <td class="px-4 py-3 text-green-700">완전 지원</td>
+              <td class="px-4 py-3 text-green-700">완전 지원</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-3 font-semibold text-gray-800">WebSocket</td>
+              <td class="px-4 py-3 text-red-600">미지원 (서버리스)</td>
+              <td class="px-4 py-3 text-green-700">Durable Objects</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 font-semibold text-gray-800">빌드 파이프라인</td>
+              <td class="px-4 py-3 text-green-700">Vite 네이티브 지원</td>
+              <td class="px-4 py-3 text-yellow-700">Pages 정적만, Workers 별도</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-gray-800">환경 변수</td>
+              <td class="px-4 py-3">대시보드 UI, 환경별 분리</td>
+              <td class="px-4 py-3">Wrangler CLI / 대시보드</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Vercel Detail -->
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="border-2 border-gray-900 rounded-2xl p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-black rounded-md"></span> Vercel
+          </h3>
+          <div class="mb-4">
+            <h4 class="font-bold text-green-700 mb-2">장점</h4>
+            <ul class="space-y-1 text-[15px] text-gray-700">
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> <code>@vercel/node</code> 어댑터로 Express.js 래핑 가능</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> Vite 빌드 네이티브 지원</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> 서울 엣지 노드, 빠른 정적 자산 전달</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> Git push 기반 자동 배포 + Preview</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> 우수한 모니터링/분석 대시보드</li>
+            </ul>
+          </div>
+          <div class="mb-4">
+            <h4 class="font-bold text-red-600 mb-2">단점</h4>
+            <ul class="space-y-1 text-[15px] text-gray-700">
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> MySQL 커넥션 관리 복잡</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> 실행 시간 제한 (Hobby 10초 / Pro 60초)</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> WebSocket 미지원</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> Cold Start 250-500ms</li>
+            </ul>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 mb-2 text-sm">필요한 코드 변경</h4>
+            <ol class="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+              <li><code>api/index.ts</code> 생성 (Express 앱 export)</li>
+              <li><code>vercel.json</code> 생성 (라우팅 설정)</li>
+              <li><code>server/db.ts</code> connection pool 적용</li>
+              <li><code>package.json</code> vercel-build 추가</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Cloudflare Detail -->
+        <div class="border-2 border-cloudflare rounded-2xl p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-cloudflare rounded-md"></span> Cloudflare
+          </h3>
+          <div class="mb-4">
+            <h4 class="font-bold text-green-700 mb-2">장점</h4>
+            <ul class="space-y-1 text-[15px] text-gray-700">
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> Workers near-zero cold start (~5ms)</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> 300+ 글로벌 엣지, 한국 내 다수 PoP</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> Pages 무료 무제한 정적 대역폭</li>
+              <li class="flex items-start gap-2"><span class="text-green-600 mt-1">+</span> Durable Objects로 WebSocket 지원</li>
+            </ul>
+          </div>
+          <div class="mb-4">
+            <h4 class="font-bold text-red-600 mb-2">단점</h4>
+            <ul class="space-y-1 text-[15px] text-gray-700">
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> <strong>Express.js 실행 불가</strong> (V8 isolate)</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> mysql2 드라이버 호환 불가</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> 백엔드 전면 재작성 필요</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> D1은 SQLite만, MySQL은 Hyperdrive</li>
+              <li class="flex items-start gap-2"><span class="text-red-500 mt-1">-</span> CPU 시간 제한 (무료 10ms / 유료 30초)</li>
+            </ul>
+          </div>
+          <div class="bg-orange-50 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 mb-2 text-sm">필요한 코드 변경</h4>
+            <ol class="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+              <li>Express &rarr; Hono 또는 itty-router</li>
+              <li>mysql2 &rarr; Hyperdrive 호환 드라이버</li>
+              <li>Node.js 빌트인 &rarr; Web API 대체</li>
+              <li>axios &rarr; fetch 전환</li>
+              <li>tRPC Express &rarr; Fetch adapter</li>
+              <li class="font-semibold text-red-600">예상 소요: 2-4주</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Recommended Strategy -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">3</span>
+        권장 배포 전략
+      </h2>
+
+      <!-- Option A: Vercel -->
+      <div class="mb-8 border-2 border-gray-200 rounded-2xl overflow-hidden">
+        <div class="bg-gray-100 px-6 py-3 flex items-center gap-2">
+          <span class="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded">Option A</span>
+          <h3 class="text-lg font-bold text-gray-900">최우선 추천: Vercel</h3>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-gray-700 mb-4">현재 아키텍처에서 가장 적은 변경으로 배포 가능한 플랫폼.</p>
+          <div class="bg-gray-900 text-green-400 rounded-xl p-5 diagram">
+            <pre>[사용자] &rarr; [Vercel Edge (서울)]
+           ├── 정적 자산 (dist/public/) &rarr; CDN 캐시
+           └── /api/* &rarr; Serverless Function (Express.js)
+                         └── MySQL (외부 DB 서비스)</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option B: Hybrid -->
+      <div class="border-2 border-primary rounded-2xl overflow-hidden">
+        <div class="bg-green-50 px-6 py-3 flex items-center gap-3">
+          <span class="px-2 py-0.5 bg-primary text-white text-xs font-bold rounded">Option B</span>
+          <h3 class="text-lg font-bold text-primary">최적 추천: 하이브리드 (VPS + CDN)</h3>
+          <span class="ml-auto px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">BEST</span>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-gray-700 mb-4">Express.js를 수정 없이 배포하고 CDN으로 성능 최적화.</p>
+
+          <div class="bg-gray-900 text-green-400 rounded-xl p-5 diagram mb-5">
+            <pre>[사용자] &rarr; [Cloudflare CDN]
+           ├── 정적 자산 &rarr; 엣지 캐시 (&lt; 50ms)
+           └── /api/* &rarr; [Fly.io / Railway 서울/도쿄]
+                         ├── Express.js (상시 실행)
+                         └── MySQL (persistent connection)</pre>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-3 mb-5">
+            <div class="flex items-start gap-2 text-[15px] text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              코드 변경 불필요
+            </div>
+            <div class="flex items-start gap-2 text-[15px] text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Cold start 없음
+            </div>
+            <div class="flex items-start gap-2 text-[15px] text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              MySQL 커넥션 풀링 안정적
+            </div>
+            <div class="flex items-start gap-2 text-[15px] text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              정적 자산 &lt; 50ms 응답
+            </div>
+            <div class="flex items-start gap-2 text-[15px] text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              향후 WebSocket 추가 용이
+            </div>
+          </div>
+
+          <!-- VPS Platform Table -->
+          <h4 class="font-bold text-gray-800 mb-3">추천 VPS 플랫폼</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-[15px]">
+              <thead>
+                <tr class="bg-green-50">
+                  <th class="px-3 py-2 font-bold text-gray-700">플랫폼</th>
+                  <th class="px-3 py-2 font-bold text-gray-700">한국 근접 리전</th>
+                  <th class="px-3 py-2 font-bold text-gray-700">무료 티어</th>
+                  <th class="px-3 py-2 font-bold text-gray-700">유료</th>
+                  <th class="px-3 py-2 font-bold text-gray-700">특징</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-100">
+                  <td class="px-3 py-2 font-semibold text-flyio">Fly.io</td>
+                  <td class="px-3 py-2"><strong>서울(ICN)</strong>, 도쿄</td>
+                  <td class="px-3 py-2">3 shared VM</td>
+                  <td class="px-3 py-2">~$5-7/월</td>
+                  <td class="px-3 py-2">서울 직접 배포</td>
+                </tr>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                  <td class="px-3 py-2 font-semibold">Railway</td>
+                  <td class="px-3 py-2">도쿄</td>
+                  <td class="px-3 py-2">$5 크레딧/월</td>
+                  <td class="px-3 py-2">~$5-10/월</td>
+                  <td class="px-3 py-2">Zero-config, MySQL 애드온</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 font-semibold">Render</td>
+                  <td class="px-3 py-2">싱가포르</td>
+                  <td class="px-3 py-2">750시간/월</td>
+                  <td class="px-3 py-2">$7/월</td>
+                  <td class="px-3 py-2">간단, Git 자동 배포</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Environment Variables -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">4</span>
+        환경 변수 설정 가이드
+      </h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-[15px]">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="px-4 py-3 font-bold text-gray-700 rounded-tl-xl">변수명</th>
+              <th class="px-4 py-3 font-bold text-gray-700">설명</th>
+              <th class="px-4 py-3 font-bold text-gray-700 rounded-tr-xl">예시</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">VITE_APP_ID</code></td>
+              <td class="px-4 py-2 text-gray-700">애플리케이션 ID</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">appatree</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">JWT_SECRET</code></td>
+              <td class="px-4 py-2 text-gray-700">쿠키 서명 시크릿</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">your-secret-key</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">DATABASE_URL</code></td>
+              <td class="px-4 py-2 text-gray-700">MySQL 연결 문자열</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">mysql://user:pass@host:3306/db</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">OAUTH_SERVER_URL</code></td>
+              <td class="px-4 py-2 text-gray-700">OAuth 서버 URL</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">https://oauth.example.com</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">OWNER_OPEN_ID</code></td>
+              <td class="px-4 py-2 text-gray-700">관리자 OAuth ID</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">admin-open-id</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">NODE_ENV</code></td>
+              <td class="px-4 py-2 text-gray-700">실행 환경</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">production</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">BUILT_IN_FORGE_API_URL</code></td>
+              <td class="px-4 py-2 text-gray-700">Forge API 엔드포인트</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">https://forge.example.com</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50">
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">BUILT_IN_FORGE_API_KEY</code></td>
+              <td class="px-4 py-2 text-gray-700">Forge API 키</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">forge-api-key</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">VITE_OAUTH_PORTAL_URL</code></td>
+              <td class="px-4 py-2 text-gray-700">OAuth 포털 URL</td>
+              <td class="px-4 py-2 text-gray-500 text-sm">https://portal.example.com</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 5: Deployment Steps -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">5</span>
+        단계별 배포 절차
+      </h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Vercel Steps -->
+        <div class="border border-gray-200 rounded-2xl overflow-hidden">
+          <div class="bg-gray-900 text-white px-5 py-3 font-bold flex items-center gap-2">
+            <span class="w-5 h-5 bg-white rounded-sm"></span> Vercel 배포 (Option A)
+          </div>
+          <div class="p-5 space-y-3">
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</span>
+              <div>
+                <p class="font-semibold text-gray-800">Vercel CLI 설치</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">npm i -g vercel</code>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
+              <p class="font-semibold text-gray-800"><code>vercel.json</code> 생성 (프로젝트 루트)</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
+              <p class="font-semibold text-gray-800"><code>api/index.ts</code> 생성 (Express 앱 export)</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
+              <p class="font-semibold text-gray-800">환경 변수 설정 (Vercel 대시보드)</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">5</span>
+              <div>
+                <p class="font-semibold text-gray-800">배포</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">vercel --prod</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hybrid Steps -->
+        <div class="border-2 border-primary rounded-2xl overflow-hidden">
+          <div class="bg-primary text-white px-5 py-3 font-bold flex items-center gap-2">
+            <span class="w-5 h-5 bg-white rounded-sm"></span> 하이브리드 배포 (Option B - 추천)
+          </div>
+          <div class="p-5 space-y-3">
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-green-100 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</span>
+              <div>
+                <p class="font-semibold text-gray-800">Fly.io CLI 설치</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded block mt-1">curl -L https://fly.io/install.sh | sh</code>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-green-100 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
+              <div>
+                <p class="font-semibold text-gray-800">앱 생성 (서울 리전)</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded block mt-1">fly launch --region icn</code>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-green-100 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
+              <div>
+                <p class="font-semibold text-gray-800">환경 변수 설정</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded block mt-1">fly secrets set DATABASE_URL="..." ...</code>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
+              <div>
+                <p class="font-semibold text-gray-800">배포</p>
+                <code class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded block mt-1">fly deploy</code>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="w-7 h-7 bg-green-100 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">5</span>
+              <div>
+                <p class="font-semibold text-gray-800">Cloudflare DNS 설정 (선택)</p>
+                <p class="text-sm text-gray-500 mt-1">
+                  /assets/* &rarr; Cache Everything<br>
+                  /api/* &rarr; Bypass Cache
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Conclusion -->
+    <section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <span class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-sm font-bold">6</span>
+        결론
+      </h2>
+
+      <div class="space-y-4">
+        <!-- Best -->
+        <div class="flex items-center gap-4 p-4 bg-green-50 border-2 border-primary rounded-2xl">
+          <span class="text-2xl">🏆</span>
+          <div class="flex-1">
+            <p class="font-bold text-primary text-lg">빠른 배포 (코드 변경 최소)</p>
+            <p class="text-gray-700"><strong>Fly.io + Cloudflare CDN</strong> &mdash; Express 그대로, 서울 리전</p>
+          </div>
+          <span class="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">BEST</span>
+        </div>
+
+        <!-- Good -->
+        <div class="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+          <span class="text-2xl">👍</span>
+          <div class="flex-1">
+            <p class="font-bold text-blue-700 text-lg">Serverless 선호</p>
+            <p class="text-gray-700"><strong>Vercel</strong> &mdash; 1-2일 리팩터링, 좋은 DX</p>
+          </div>
+        </div>
+
+        <!-- OK -->
+        <div class="flex items-center gap-4 p-4 bg-orange-50 border border-orange-200 rounded-2xl">
+          <span class="text-2xl">📄</span>
+          <div class="flex-1">
+            <p class="font-bold text-orange-700 text-lg">정적 사이트만 배포</p>
+            <p class="text-gray-700"><strong>Cloudflare Pages</strong> &mdash; 무료, 빠름</p>
+          </div>
+        </div>
+
+        <!-- Not recommended -->
+        <div class="flex items-center gap-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+          <span class="text-2xl">⛔</span>
+          <div class="flex-1">
+            <p class="font-bold text-red-700 text-lg">Cloudflare 올인</p>
+            <p class="text-gray-700"><strong>비추천</strong> &mdash; 백엔드 전면 재작성 필요 (2-4주)</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-sm text-gray-400">
+      <p>APPATREE &copy; 2026 &mdash; 시니어를 위한 음성 기반 오디오북 앱</p>
+      <div class="mt-2 flex justify-center gap-4">
+        <a href="menus/index.html" class="text-primary hover:underline">사이트맵</a>
+        <a href="prd/README.md" class="text-primary hover:underline">PRD 문서</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>
