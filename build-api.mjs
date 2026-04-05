@@ -1,20 +1,21 @@
 import { build } from "esbuild";
-import { rmSync } from "fs";
+import { rmSync, renameSync, existsSync } from "fs";
 
-// Clean old .js output if exists
-try { rmSync("api/trpc/[trpc].js", { force: true }); } catch {}
+const src = "api/trpc/[trpc].ts";
+const out = "api/trpc/[trpc].js";
 
+// Build CJS bundle
 await build({
-  entryPoints: ["api/trpc/[trpc].ts"],
+  entryPoints: [src],
   bundle: true,
   platform: "node",
   target: "node18",
   format: "cjs",
-  outfile: "api/trpc/[trpc].js",
+  outfile: out,
   packages: "external",
-  banner: {
-    js: "/* bundled by esbuild */",
-  },
 });
 
-console.log("✓ API serverless function bundled to api/trpc/[trpc].js");
+// Remove .ts source to avoid Vercel conflict
+rmSync(src, { force: true });
+
+console.log("✓ API bundled → api/trpc/[trpc].js (source removed)");
