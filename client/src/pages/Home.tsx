@@ -1,48 +1,42 @@
 import { useState, useRef, useEffect } from 'react';
 import { Mic, Settings, Home as HomeIcon, Search, MessageCircle, BookOpen } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { trpc } from '@/lib/trpc';
 
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'error';
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  searchQuery: string;
-}
-
-const categories: Category[] = [
-  { id: 'novel', name: '소설', icon: '📖', searchQuery: '소설 오디오북' },
-  { id: 'essay', name: '에세이', icon: '✍️', searchQuery: '에세이 오디오북' },
-  { id: 'history', name: '역사', icon: '🏛️', searchQuery: '역사 오디오북' },
-  { id: 'economy', name: '경제', icon: '💼', searchQuery: '경제 오디오북' },
-  { id: 'selfhelp', name: '자기계발', icon: '🌱', searchQuery: '자기계발 오디오북' },
-  { id: 'popular', name: '인기 오디오북', icon: '⭐', searchQuery: '인기 오디오북' },
-];
 
 export default function Home() {
   const [, navigate] = useLocation();
   const [voiceState, setVoiceState] = useState<VoiceButtonState>('idle');
   const [recognitionText, setRecognitionText] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const categoriesQuery = trpc.config.categories.useQuery();
+  const announcementsQuery = trpc.config.announcements.useQuery();
+  const historyQuery = trpc.library.history.useQuery({ limit: 5, offset: 0 }, { retry: false });
+
+  const categories = categoriesQuery.data ?? [];
+  const announcements = announcementsQuery.data ?? [];
+  const recentHistory = historyQuery.data ?? [];
 
   // Initialize Web Speech API
   useEffect(() => {
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.lang = 'ko-KR';
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
+    const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (SpeechRecognitionClass) {
+      const recognition = new SpeechRecognitionClass();
+      recognition.lang = 'ko-KR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognitionRef.current = recognition;
 
-      recognitionRef.current.onstart = () => {
+      recognition.onstart = () => {
         setVoiceState('recording');
         setStatusMessage('듣고 있습니다...');
         speakMessage('말씀해주세요');
       };
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
@@ -52,45 +46,39 @@ export default function Home() {
             interimTranscript += transcript;
           }
         }
-        if (interimTranscript) {
-          setStatusMessage(interimTranscript);
-        }
+        if (interimTranscript) setStatusMessage(interimTranscript);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognition.onerror = () => {
         setVoiceState('error');
-        setStatusMessage(`오류: ${event.error}`);
+        setStatusMessage('다시 말씀해주세요');
         speakMessage('다시 말씀해주세요');
         setTimeout(() => setVoiceState('idle'), 3000);
       };
 
-      recognitionRef.current.onend = () => {
-        if (recognitionText) {
-          setVoiceState('processing');
-          setStatusMessage('검색 중입니다...');
-          // Navigate to search results with the recognized text
-          setTimeout(() => {
-            navigate(`/search?q=${encodeURIComponent(recognitionText)}`);
-          }, 500);
-        } else {
-          setVoiceState('idle');
-        }
+      recognition.onend = () => {
+        // Use latest recognitionText via ref callback
       };
     }
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-    };
-  }, [navigate, recognitionText]);
+    return () => { recognitionRef.current?.abort(); };
+  }, []);
+
+  // Navigate when recognition completes
+  useEffect(() => {
+    if (recognitionText && voiceState === 'recording') {
+      setVoiceState('processing');
+      setStatusMessage('검색 중입니다...');
+      setTimeout(() => navigate(`/search?q=${encodeURIComponent(recognitionText)}`), 500);
+    }
+  }, [recognitionText]);
 
   const speakMessage = (message: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(message);
       utterance.lang = 'ko-KR';
-      utterance.rate = 0.9; // Senior-friendly speed
+      utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -99,35 +87,68 @@ export default function Home() {
     if (voiceState === 'idle') {
       setRecognitionText('');
       setStatusMessage('');
-      if (recognitionRef.current) {
-        recognitionRef.current.start();
-      }
+      recognitionRef.current?.start();
     }
   };
 
-  const handleCategoryClick = (category: Category) => {
-    navigate(`/search?q=${encodeURIComponent(category.searchQuery)}`);
+  const handleCategoryClick = (searchQuery: string) => {
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="text-3xl">🎧</div>
           <h1 className="text-senior-title">아빠트리</h1>
         </div>
-        <button
-          className="p-3 rounded-lg hover:bg-gray-100 transition-colors"
-          aria-label="설정"
-          onClick={() => navigate('/settings')}
-        >
+        <button className="p-3 rounded-lg hover:bg-gray-100 transition-colors" aria-label="설정" onClick={() => navigate('/settings')}>
           <Settings size={32} className="text-gray-700" />
         </button>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8">
+      <main className="flex-1 flex flex-col items-center px-4 py-6">
+        {/* Announcement Banner */}
+        {announcements.length > 0 && (
+          <div className="w-full max-w-2xl mb-6">
+            {announcements.map((a) => (
+              <div key={a.id} className={`rounded-lg p-4 mb-2 ${a.type === 'urgent' ? 'bg-red-100 border-2 border-red-300' : a.type === 'warning' ? 'bg-yellow-100 border-2 border-yellow-300' : 'bg-blue-50 border-2 border-blue-200'}`}>
+                <p className="text-senior-button font-bold">{a.title}</p>
+                <p className="text-senior-body">{a.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Continue Listening */}
+        {recentHistory.length > 0 && (
+          <div className="w-full max-w-2xl mb-8">
+            <h2 className="text-senior-heading text-gray-800 mb-4">이어 듣기</h2>
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {recentHistory.map((item) => {
+                const pct = item.totalSeconds > 0 ? (item.progressSeconds / item.totalSeconds) * 100 : 0;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(`/player?id=${item.videoId}&title=${encodeURIComponent(item.title)}&t=${item.progressSeconds}`)}
+                    className="flex-shrink-0 w-40 bg-white border-2 border-gray-200 hover:border-green-600 rounded-lg p-3 transition-all text-left"
+                  >
+                    {item.thumbnailUrl ? (
+                      <img src={item.thumbnailUrl} alt={item.title} className="w-full h-20 rounded object-cover mb-2" />
+                    ) : (
+                      <div className="w-full h-20 rounded bg-gray-200 flex items-center justify-center text-2xl mb-2">🎧</div>
+                    )}
+                    <p className="text-sm font-bold text-gray-800 line-clamp-2 mb-1">{item.title}</p>
+                    <div className="bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-green-600 h-full rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Voice Button */}
         <div className="mb-12 flex flex-col items-center">
           <button
@@ -139,8 +160,6 @@ export default function Home() {
           >
             <Mic size={64} className="text-white" />
           </button>
-
-          {/* Status Message */}
           <div className="mt-8 text-center">
             <p className="text-senior-body text-gray-700 mb-2">
               {statusMessage || '듣고 싶은 책을 말씀해주세요'}
@@ -148,11 +167,7 @@ export default function Home() {
             {voiceState === 'recording' && (
               <div className="flex justify-center gap-1">
                 {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="w-1 h-6 bg-green-600 rounded-full animate-pulse"
-                    style={{ animationDelay: `${i * 0.1}s` }}
-                  />
+                  <div key={i} className="w-1 h-6 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
                 ))}
               </div>
             )}
@@ -161,14 +176,12 @@ export default function Home() {
 
         {/* Categories */}
         <div className="w-full max-w-2xl">
-          <h2 className="text-senior-heading text-gray-800 mb-6 text-center">
-            카테고리
-          </h2>
+          <h2 className="text-senior-heading text-gray-800 mb-6 text-center">카테고리</h2>
           <div className="grid grid-cols-2 gap-4">
             {categories.map((category) => (
               <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category)}
+                key={category.slug}
+                onClick={() => handleCategoryClick(category.searchQuery)}
                 className="list-item-senior flex flex-col items-center justify-center bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-green-600 rounded-lg p-6 transition-all"
                 aria-label={`${category.name} 카테고리`}
               >
@@ -182,37 +195,17 @@ export default function Home() {
 
       {/* Bottom Navigation */}
       <nav className="bg-white border-t border-gray-200 px-4 py-3 flex justify-around">
-        <button
-          className="flex flex-col items-center gap-2 p-3 rounded-lg bg-green-100 text-green-700"
-          aria-label="홈"
-          aria-current="page"
-        >
-          <HomeIcon size={32} />
-          <span className="text-senior-button text-xs">홈</span>
+        <button className="flex flex-col items-center gap-2 p-3 rounded-lg bg-green-100 text-green-700" aria-label="홈" aria-current="page">
+          <HomeIcon size={32} /><span className="text-senior-button text-xs">홈</span>
         </button>
-        <button
-          onClick={() => navigate('/search')}
-          className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-          aria-label="검색"
-        >
-          <Search size={32} />
-          <span className="text-senior-button text-xs">검색</span>
+        <button onClick={() => navigate('/search')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="검색">
+          <Search size={32} /><span className="text-senior-button text-xs">검색</span>
         </button>
-        <button
-          onClick={() => navigate('/chat')}
-          className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-          aria-label="AI 채팅"
-        >
-          <MessageCircle size={32} />
-          <span className="text-senior-button text-xs">AI 채팅</span>
+        <button onClick={() => navigate('/chat')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="AI 채팅">
+          <MessageCircle size={32} /><span className="text-senior-button text-xs">AI 채팅</span>
         </button>
-        <button
-          onClick={() => navigate('/library')}
-          className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-          aria-label="내 서재"
-        >
-          <BookOpen size={32} />
-          <span className="text-senior-button text-xs">내 서재</span>
+        <button onClick={() => navigate('/library')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="내 서재">
+          <BookOpen size={32} /><span className="text-senior-button text-xs">내 서재</span>
         </button>
       </nav>
     </div>

@@ -10,9 +10,16 @@ import Player from "./pages/Player";
 import AIChat from "./pages/AIChat";
 import Library from "./pages/Library";
 import Settings from "./pages/Settings";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminCurated from "./pages/admin/AdminCurated";
+import AdminConfig from "./pages/admin/AdminConfig";
+import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
@@ -21,25 +28,26 @@ function Router() {
       <Route path={"/chat"} component={AIChat} />
       <Route path={"/library"} component={Library} />
       <Route path={"/settings"} component={Settings} />
+
+      {/* Admin Routes */}
+      <Route path="/admin">{() => <AdminLayout><AdminOverview /></AdminLayout>}</Route>
+      <Route path="/admin/users">{() => <AdminLayout><AdminUsers /></AdminLayout>}</Route>
+      <Route path="/admin/categories">{() => <AdminLayout><AdminCategories /></AdminLayout>}</Route>
+      <Route path="/admin/curated">{() => <AdminLayout><AdminCurated /></AdminLayout>}</Route>
+      <Route path="/admin/config">{() => <AdminLayout><AdminConfig /></AdminLayout>}</Route>
+      <Route path="/admin/announcements">{() => <AdminLayout><AdminAnnouncements /></AdminLayout>}</Route>
+      <Route path="/admin/analytics">{() => <AdminLayout><AdminAnalytics /></AdminLayout>}</Route>
+
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />

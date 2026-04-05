@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPATREE - 프로젝트 문서</title>
+  <style>
+    :root { --green: #16a34a; --green-dark: #15803d; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-600: #4b5563; --gray-800: #1f2937; --gray-900: #111827; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--gray-800); line-height: 1.6; background: var(--gray-50); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    header { background: var(--green); color: white; padding: 48px 0; }
+    header h1 { font-size: 2.5rem; margin-bottom: 8px; }
+    header p { font-size: 1.1rem; opacity: 0.9; }
+    nav { background: white; border-bottom: 1px solid var(--gray-200); padding: 12px 0; position: sticky; top: 0; z-index: 10; }
+    nav .container { display: flex; gap: 24px; flex-wrap: wrap; }
+    nav a { color: var(--gray-600); text-decoration: none; font-weight: 500; padding: 8px 0; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    nav a:hover, nav a.active { color: var(--green); border-bottom-color: var(--green); }
+    main { padding: 48px 0; }
+    section { margin-bottom: 48px; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    section h2 { font-size: 1.5rem; color: var(--green-dark); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--gray-200); }
+    section h3 { font-size: 1.15rem; color: var(--gray-900); margin: 24px 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+    th { background: var(--gray-100); font-weight: 600; color: var(--gray-900); }
+    tr:hover { background: var(--gray-50); }
+    code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #c2410c; }
+    pre { background: var(--gray-900); color: #e5e7eb; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; font-size: 0.85rem; line-height: 1.5; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+    .card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 20px; }
+    .card h4 { color: var(--green-dark); margin-bottom: 8px; }
+    .card p { color: var(--gray-600); font-size: 0.9rem; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge-public { background: #dcfce7; color: #166534; }
+    .badge-protected { background: #dbeafe; color: #1e40af; }
+    .badge-admin { background: #fef3c7; color: #92400e; }
+    .flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+    .flow-item { background: white; border: 2px solid var(--gray-200); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; }
+    .flow-arrow { color: var(--green); font-weight: bold; font-size: 1.2rem; }
+    footer { background: var(--gray-100); padding: 24px 0; text-align: center; color: var(--gray-600); font-size: 0.85rem; }
+    @media (max-width: 640px) { header h1 { font-size: 1.8rem; } section { padding: 20px; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>APPATREE (아빠트리)</h1>
+    <p>시니어를 위한 음성 기반 오디오북 검색 및 재생 웹 애플리케이션</p>
+  </div>
+</header>
+
+<nav>
+  <div class="container">
+    <a href="#overview" class="active">개요</a>
+    <a href="#tech-stack">기술 스택</a>
+    <a href="#pages">페이지 구성</a>
+    <a href="#database">데이터베이스</a>
+    <a href="#api">API</a>
+    <a href="#admin">관리자</a>
+    <a href="#features">주요 기능</a>
+    <a href="#setup">설정 가이드</a>
+  </div>
+</nav>
+
+<main class="container">
+
+  <!-- 개요 -->
+  <section id="overview">
+    <h2>프로젝트 개요</h2>
+    <p>아빠트리(APPATREE)는 시니어(고령자)를 위한 음성 기반 오디오북 검색 및 재생 웹 애플리케이션입니다.</p>
+    <div class="card-grid" style="margin-top: 20px;">
+      <div class="card">
+        <h4>음성 검색</h4>
+        <p>Web Speech API 또는 Whisper STT로 한국어 음성 인식. 말로 오디오북을 찾을 수 있습니다.</p>
+      </div>
+      <div class="card">
+        <h4>YouTube 연동</h4>
+        <p>YouTube Data API v3로 오디오북 검색, 재생. 인메모리 캐시로 API 쿼터 보호.</p>
+      </div>
+      <div class="card">
+        <h4>AI 추천</h4>
+        <p>Gemini 2.5 Flash LLM 기반 맞춤 오디오북 추천. 대화형 인터페이스.</p>
+      </div>
+      <div class="card">
+        <h4>관리자 대시보드</h4>
+        <p>카테고리, 큐레이션, AI/YouTube/음성 설정, 공지사항, 분석 차트.</p>
+      </div>
+      <div class="card">
+        <h4>이어 듣기</h4>
+        <p>재생 위치 자동 저장. 나중에 이어서 들을 수 있습니다.</p>
+      </div>
+      <div class="card">
+        <h4>시니어 UI</h4>
+        <p>큰 글씨, 큰 버튼, 고대비 모드, TTS 음성 안내, 수면 타이머.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 기술 스택 -->
+  <section id="tech-stack">
+    <h2>기술 스택</h2>
+    <table>
+      <tr><th>영역</th><th>기술</th><th>버전</th></tr>
+      <tr><td>프론트엔드</td><td>React + TypeScript + Tailwind v4 + Wouter</td><td>React 19</td></tr>
+      <tr><td>백엔드</td><td>Express + tRPC</td><td>tRPC v11</td></tr>
+      <tr><td>데이터베이스</td><td>Supabase PostgreSQL + Drizzle ORM</td><td>Drizzle 0.44</td></tr>
+      <tr><td>인증</td><td>OAuth + JWT 세션 쿠키</td><td>jose 6.1</td></tr>
+      <tr><td>AI</td><td>Gemini 2.5 Flash (Forge API)</td><td>-</td></tr>
+      <tr><td>음성</td><td>Web Speech API + Whisper STT</td><td>-</td></tr>
+      <tr><td>외부 API</td><td>YouTube Data API v3</td><td>v3</td></tr>
+      <tr><td>배포</td><td>Vercel (Git 연동)</td><td>-</td></tr>
+      <tr><td>빌드</td><td>Vite + esbuild</td><td>Vite 7</td></tr>
+    </table>
+  </section>
+
+  <!-- 페이지 구성 -->
+  <section id="pages">
+    <h2>페이지 구성</h2>
+    <h3>사용자 페이지 (6개)</h3>
+    <table>
+      <tr><th>경로</th><th>페이지</th><th>설명</th></tr>
+      <tr><td><code>/</code></td><td>홈</td><td>음성 검색 버튼, 카테고리, 공지 배너, 이어 듣기</td></tr>
+      <tr><td><code>/search</code></td><td>검색 결과</td><td>YouTube 실시간 검색, 북마크 추가</td></tr>
+      <tr><td><code>/player</code></td><td>재생</td><td>YouTube 플레이어, 이어듣기, 수면 타이머</td></tr>
+      <tr><td><code>/chat</code></td><td>AI 채팅</td><td>LLM 기반 추천, 추천 카드, 세션 관리</td></tr>
+      <tr><td><code>/library</code></td><td>내 서재</td><td>즐겨찾기, 최근 재생, 진행률 표시</td></tr>
+      <tr><td><code>/settings</code></td><td>설정</td><td>글씨 크기, 음량, TTS 속도, 고대비, 데이터 관리</td></tr>
+    </table>
+    <h3>관리자 페이지 (7개)</h3>
+    <table>
+      <tr><th>경로</th><th>페이지</th><th>설명</th></tr>
+      <tr><td><code>/admin</code></td><td>대시보드</td><td>통계 카드, 인기 검색어</td></tr>
+      <tr><td><code>/admin/users</code></td><td>사용자 관리</td><td>목록, 역할 변경, 검색</td></tr>
+      <tr><td><code>/admin/categories</code></td><td>카테고리</td><td>CRUD, 활성 토글</td></tr>
+      <tr><td><code>/admin/curated</code></td><td>큐레이션</td><td>YouTube 검색 → 추가</td></tr>
+      <tr><td><code>/admin/config</code></td><td>앱 설정</td><td>AI, YouTube, 음성, 앱 설정</td></tr>
+      <tr><td><code>/admin/announcements</code></td><td>공지사항</td><td>CRUD, 유형/활성 관리</td></tr>
+      <tr><td><code>/admin/analytics</code></td><td>분석</td><td>차트: 검색량, 비율, 인기 콘텐츠</td></tr>
+    </table>
+  </section>
+
+  <!-- 데이터베이스 -->
+  <section id="database">
+    <h2>데이터베이스 (Supabase PostgreSQL)</h2>
+    <p>Drizzle ORM으로 10개 테이블 관리. <code>drizzle/schema.ts</code>에 정의.</p>
+    <table>
+      <tr><th>테이블</th><th>용도</th><th>핵심 컬럼</th></tr>
+      <tr><td><code>users</code></td><td>사용자</td><td>open_id, name, email, role</td></tr>
+      <tr><td><code>user_preferences</code></td><td>사용자 설정</td><td>text_size, volume, tts_speed, autoplay</td></tr>
+      <tr><td><code>bookmarks</code></td><td>즐겨찾기</td><td>user_id, video_id, title</td></tr>
+      <tr><td><code>listening_history</code></td><td>청취 이력</td><td>progress_seconds, total_seconds</td></tr>
+      <tr><td><code>search_logs</code></td><td>검색 로그</td><td>query, source(voice/text/category)</td></tr>
+      <tr><td><code>chat_sessions</code></td><td>AI 채팅 세션</td><td>user_id, title</td></tr>
+      <tr><td><code>chat_messages</code></td><td>채팅 메시지</td><td>session_id, role, content</td></tr>
+      <tr><td><code>categories</code></td><td>카테고리</td><td>slug, name, icon, search_query</td></tr>
+      <tr><td><code>curated_content</code></td><td>큐레이션</td><td>category_slug, video_id, title</td></tr>
+      <tr><td><code>app_config</code></td><td>앱 설정 (KV)</td><td>config_key, config_value</td></tr>
+      <tr><td><code>announcements</code></td><td>공지사항</td><td>title, content, type, is_active</td></tr>
+    </table>
+  </section>
+
+  <!-- API -->
+  <section id="api">
+    <h2>API 엔드포인트</h2>
+    <p>tRPC v11 기반. 엔드포인트: <code>POST /api/trpc/:procedure</code></p>
+    <h3>주요 라우터</h3>
+    <table>
+      <tr><th>라우터</th><th>접근</th><th>프로시저 수</th><th>설명</th></tr>
+      <tr><td>auth</td><td><span class="badge badge-public">public</span></td><td>2</td><td>인증 (me, logout)</td></tr>
+      <tr><td>youtube</td><td><span class="badge badge-public">public</span></td><td>4</td><td>YouTube 검색/상세/채널/플레이리스트</td></tr>
+      <tr><td>voice</td><td><span class="badge badge-protected">protected</span></td><td>1</td><td>Whisper 음성 인식</td></tr>
+      <tr><td>library</td><td><span class="badge badge-protected">protected</span></td><td>9</td><td>북마크, 이력, 진행률</td></tr>
+      <tr><td>chat</td><td><span class="badge badge-protected">protected</span></td><td>5</td><td>AI 채팅 세션/메시지</td></tr>
+      <tr><td>preferences</td><td><span class="badge badge-protected">protected</span></td><td>2</td><td>사용자 설정</td></tr>
+      <tr><td>config</td><td><span class="badge badge-public">public</span></td><td>3</td><td>공개 설정 (카테고리, 공지)</td></tr>
+      <tr><td>admin</td><td><span class="badge badge-admin">admin</span></td><td>20+</td><td>관리자 전용 CRUD + 분석</td></tr>
+    </table>
+  </section>
+
+  <!-- 관리자 -->
+  <section id="admin">
+    <h2>관리자 설정 항목</h2>
+    <h3>AI 설정</h3>
+    <table>
+      <tr><th>설정 키</th><th>기본값</th><th>설명</th></tr>
+      <tr><td><code>ai.systemPrompt</code></td><td>(내장)</td><td>AI 성격/역할 정의</td></tr>
+      <tr><td><code>ai.temperature</code></td><td>0.7</td><td>창의성 (0=보수적, 2=창의적)</td></tr>
+      <tr><td><code>ai.maxTokens</code></td><td>2048</td><td>응답 길이 제한</td></tr>
+      <tr><td><code>ai.greetingMessage</code></td><td>(내장)</td><td>채팅 초기 인사말</td></tr>
+    </table>
+    <h3>YouTube 설정</h3>
+    <table>
+      <tr><th>설정 키</th><th>기본값</th><th>설명</th></tr>
+      <tr><td><code>youtube.safeSearch</code></td><td>strict</td><td>안전 검색 레벨</td></tr>
+      <tr><td><code>youtube.audiobookSuffix</code></td><td>오디오북</td><td>검색어 자동 접미사</td></tr>
+      <tr><td><code>youtube.blockedChannels</code></td><td>[]</td><td>차단 채널 (JSON)</td></tr>
+      <tr><td><code>youtube.blockedKeywords</code></td><td>[]</td><td>차단 키워드 (JSON)</td></tr>
+    </table>
+    <h3>음성/앱 설정</h3>
+    <table>
+      <tr><th>설정 키</th><th>기본값</th><th>설명</th></tr>
+      <tr><td><code>stt.provider</code></td><td>webSpeech</td><td>STT 제공자</td></tr>
+      <tr><td><code>stt.language</code></td><td>ko-KR</td><td>인식 언어</td></tr>
+      <tr><td><code>app.maintenanceMode</code></td><td>false</td><td>유지보수 모드</td></tr>
+    </table>
+  </section>
+
+  <!-- 주요 기능 -->
+  <section id="features">
+    <h2>주요 기능</h2>
+    <h3>데이터 흐름</h3>
+    <div class="flow">
+      <div class="flow-item">음성 입력</div><span class="flow-arrow">→</span>
+      <div class="flow-item">Web Speech API / Whisper</div><span class="flow-arrow">→</span>
+      <div class="flow-item">텍스트 변환</div><span class="flow-arrow">→</span>
+      <div class="flow-item">YouTube API 검색</div><span class="flow-arrow">→</span>
+      <div class="flow-item">결과 표시</div><span class="flow-arrow">→</span>
+      <div class="flow-item">재생 (IFrame)</div>
+    </div>
+    <h3>보안 기능</h3>
+    <table>
+      <tr><th>기능</th><th>설명</th></tr>
+      <tr><td>JWT 세션</td><td>HS256 서명, HttpOnly 쿠키, 1년 만료</td></tr>
+      <tr><td>RBAC</td><td>public / protected / admin 3단계</td></tr>
+      <tr><td>콘텐츠 필터</td><td>YouTube safeSearch + 차단 채널/키워드</td></tr>
+      <tr><td>API 쿼터 보호</td><td>인메모리 캐시 (5분 TTL) + 사용자당 제한</td></tr>
+    </table>
+    <h3>시니어 접근성</h3>
+    <table>
+      <tr><th>기능</th><th>설명</th></tr>
+      <tr><td>큰 글씨</td><td>18/20/24px 선택, DB 저장</td></tr>
+      <tr><td>음성 안내</td><td>TTS로 주요 동작 음성 피드백</td></tr>
+      <tr><td>수면 타이머</td><td>15/30/45/60분, 볼륨 페이드아웃</td></tr>
+      <tr><td>이어 듣기</td><td>30초 간격 자동 저장, 재개 지원</td></tr>
+      <tr><td>고대비 모드</td><td>시각 접근성 향상 토글</td></tr>
+    </table>
+  </section>
+
+  <!-- 설정 가이드 -->
+  <section id="setup">
+    <h2>설정 가이드</h2>
+    <h3>1. Supabase 설정</h3>
+    <ol style="margin-left: 20px; line-height: 2;">
+      <li><a href="https://supabase.com" target="_blank">supabase.com</a> 에서 프로젝트 생성</li>
+      <li>Settings → Database → Connection string 복사</li>
+      <li><code>.env.local</code>에 <code>DATABASE_URL=postgresql://...</code> 추가</li>
+    </ol>
+    <h3>2. 환경변수</h3>
+    <pre>DATABASE_URL=postgresql://postgres:password@host:5432/postgres
+JWT_SECRET=your-jwt-secret
+VITE_APP_ID=your-app-id
+OAUTH_SERVER_URL=https://oauth.example.com
+YOUTUBE_API_KEY=AIzaSy...
+BUILT_IN_FORGE_API_URL=https://forge.example.com
+BUILT_IN_FORGE_API_KEY=your-forge-key</pre>
+    <h3>3. 실행</h3>
+    <pre>pnpm install          # 의존성 설치
+pnpm run db:push      # DB 마이그레이션
+pnpm run dev          # 개발 서버 (http://localhost:3000)</pre>
+    <h3>4. 배포 (Vercel)</h3>
+    <ol style="margin-left: 20px; line-height: 2;">
+      <li>GitHub에 Push → Vercel 자동 배포</li>
+      <li>Vercel 대시보드에서 환경변수 설정</li>
+      <li>Build Command: <code>vite build</code></li>
+      <li>Output Directory: <code>dist/public</code></li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <p>APPATREE v1.0.0 | 시니어를 위한 오디오북 플랫폼 | 2026</p>
+  </div>
+</footer>
+
+<script>
+  // Smooth scroll & active nav
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+      document.querySelectorAll('nav a').forEach(n => n.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,202 +1,261 @@
-import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { trpc } from '@/lib/trpc';
 
-interface PlayerState {
-  isPlaying: boolean;
-  currentTime: number;
-  duration: number;
-  playbackRate: number;
+declare global {
+  interface Window {
+    YT: { Player: new (el: string, opts: Record<string, unknown>) => YTPlayer };
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+interface YTPlayer {
+  playVideo(): void;
+  pauseVideo(): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
+  setPlaybackRate(rate: number): void;
+  setVolume(volume: number): void;
+  getCurrentTime(): number;
+  getDuration(): number;
+  getPlayerState(): number;
+  destroy(): void;
 }
 
 export default function Player() {
   const [, navigate] = useLocation();
-  const [playerState, setPlayerState] = useState<PlayerState>({
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
-    playbackRate: 1,
-  });
-
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = useState(70);
+  const [videoId, setVideoId] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoChannel, setVideoChannel] = useState('');
-  const playerRef = useRef<any>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [sleepTimer, setSleepTimer] = useState<number | null>(null);
+  const [sleepRemaining, setSleepRemaining] = useState(0);
 
-  // Get video ID from URL params
+  const playerRef = useRef<YTPlayer | null>(null);
+  const progressInterval = useRef<ReturnType<typeof setInterval>>();
+  const saveInterval = useRef<ReturnType<typeof setInterval>>();
+  const sleepInterval = useRef<ReturnType<typeof setInterval>>();
+
+  const addHistoryMutation = trpc.library.addHistory.useMutation();
+  const updateProgressMutation = trpc.library.updateProgress.useMutation();
+  const bookmarkMutation = trpc.library.addBookmark.useMutation();
+
+  // Parse URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const title = params.get('title');
-    if (title) {
-      setVideoTitle(decodeURIComponent(title));
-      setVideoChannel('YouTube 오디오북');
-    }
-
-    // Load YouTube IFrame API
-    const script = document.createElement('script');
-    script.src = 'https://www.youtube.com/iframe_api';
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    const id = params.get('id') ?? '';
+    const title = params.get('title') ?? '';
+    setVideoId(id);
+    setVideoTitle(decodeURIComponent(title));
   }, []);
 
+  // Load YouTube IFrame API and create player
+  useEffect(() => {
+    if (!videoId) return;
+
+    const initPlayer = () => {
+      playerRef.current = new window.YT.Player('yt-player', {
+        videoId,
+        playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+        events: {
+          onReady: (event: { target: YTPlayer }) => {
+            const d = event.target.getDuration();
+            setDuration(d);
+            setVideoChannel('YouTube 오디오북');
+            addHistoryMutation.mutate({ videoId, title: videoTitle, totalSeconds: Math.floor(d) });
+          },
+          onStateChange: (event: { data: number }) => {
+            setIsPlaying(event.data === 1);
+          },
+        },
+      } as Record<string, unknown>);
+    };
+
+    if (window.YT?.Player) {
+      initPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initPlayer;
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      playerRef.current?.destroy();
+    };
+  }, [videoId]);
+
+  // Progress tracking
+  useEffect(() => {
+    progressInterval.current = setInterval(() => {
+      if (playerRef.current && isPlaying) {
+        setCurrentTime(playerRef.current.getCurrentTime());
+      }
+    }, 1000);
+    return () => clearInterval(progressInterval.current);
+  }, [isPlaying]);
+
+  // Save progress every 30 seconds
+  useEffect(() => {
+    if (!videoId) return;
+    saveInterval.current = setInterval(() => {
+      if (playerRef.current && isPlaying) {
+        updateProgressMutation.mutate({
+          videoId,
+          progressSeconds: Math.floor(playerRef.current.getCurrentTime()),
+          totalSeconds: Math.floor(playerRef.current.getDuration()),
+        });
+      }
+    }, 30000);
+    return () => clearInterval(saveInterval.current);
+  }, [videoId, isPlaying]);
+
+  // Sleep timer
+  useEffect(() => {
+    if (sleepTimer === null) {
+      clearInterval(sleepInterval.current);
+      setSleepRemaining(0);
+      return;
+    }
+    setSleepRemaining(sleepTimer * 60);
+    sleepInterval.current = setInterval(() => {
+      setSleepRemaining((prev) => {
+        if (prev <= 1) {
+          playerRef.current?.pauseVideo();
+          setSleepTimer(null);
+          return 0;
+        }
+        // Fade volume in last 30 seconds
+        if (prev <= 30 && playerRef.current) {
+          playerRef.current.setVolume(Math.floor((prev / 30) * volume));
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(sleepInterval.current);
+  }, [sleepTimer, volume]);
+
   const handlePlayPause = () => {
-    setPlayerState((prev) => ({
-      ...prev,
-      isPlaying: !prev.isPlaying,
-    }));
+    if (isPlaying) playerRef.current?.pauseVideo();
+    else playerRef.current?.playVideo();
   };
 
-  const handleSkipBack = () => {
-    setPlayerState((prev) => ({
-      ...prev,
-      currentTime: Math.max(0, prev.currentTime - 30),
-    }));
+  const handleSkip = (seconds: number) => {
+    if (!playerRef.current) return;
+    const newTime = Math.max(0, Math.min(duration, playerRef.current.getCurrentTime() + seconds));
+    playerRef.current.seekTo(newTime, true);
+    setCurrentTime(newTime);
   };
 
-  const handleSkipForward = () => {
-    setPlayerState((prev) => ({
-      ...prev,
-      currentTime: Math.min(prev.duration, prev.currentTime + 30),
-    }));
+  const handleRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+    playerRef.current?.setPlaybackRate(rate);
   };
 
-  const handlePlaybackRateChange = (rate: number) => {
-    setPlayerState((prev) => ({
-      ...prev,
-      playbackRate: rate,
-    }));
+  const handleVolumeChange = (v: number) => {
+    setVolume(v);
+    playerRef.current?.setVolume(v);
+  };
+
+  const handleBookmark = () => {
+    if (videoId) bookmarkMutation.mutate({ videoId, title: videoTitle, channelName: videoChannel });
   };
 
   const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate('/search')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          aria-label="뒤로가기"
-        >
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="뒤로가기">
           <ArrowLeft size={32} className="text-gray-700" />
         </button>
-        <div className="flex-1">
-          <h1 className="text-senior-heading text-gray-800">재생 중</h1>
-        </div>
+        <div className="flex-1"><h1 className="text-senior-heading text-gray-800">재생 중</h1></div>
+        <button onClick={handleBookmark} className="p-2 hover:bg-red-50 rounded-lg transition-colors" aria-label="즐겨찾기">
+          <Heart size={28} className={bookmarkMutation.isSuccess ? "text-red-500 fill-red-500" : "text-gray-400"} />
+        </button>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col px-4 py-6">
-        {/* Video Player Area */}
         <div className="w-full bg-black rounded-lg overflow-hidden mb-6 aspect-video">
-          <iframe
-            ref={iframeRef}
-            width="100%"
-            height="100%"
-            src="https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1"
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          <div id="yt-player" className="w-full h-full" />
         </div>
 
-        {/* Video Info */}
         <div className="mb-6">
           <h2 className="text-senior-heading text-gray-800 mb-2">{videoTitle}</h2>
           <p className="text-senior-body text-gray-600">{videoChannel}</p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress */}
         <div className="mb-6">
-          <div className="bg-gray-200 rounded-full h-3 mb-2 cursor-pointer hover:h-4 transition-all">
-            <div
-              className="bg-green-700 h-full rounded-full transition-all"
-              style={{
-                width: `${playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0}%`,
-              }}
-            />
+          <div
+            className="bg-gray-200 rounded-full h-3 mb-2 cursor-pointer hover:h-4 transition-all"
+            onClick={(e) => {
+              if (!playerRef.current || duration === 0) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pct = (e.clientX - rect.left) / rect.width;
+              const newTime = pct * duration;
+              playerRef.current.seekTo(newTime, true);
+              setCurrentTime(newTime);
+            }}
+          >
+            <div className="bg-green-700 h-full rounded-full transition-all" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
           </div>
           <div className="flex justify-between text-senior-body text-gray-600">
-            <span>{formatTime(playerState.currentTime)}</span>
-            <span>{formatTime(playerState.duration)}</span>
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
 
         {/* Controls */}
         <div className="bg-gray-50 rounded-lg p-6 mb-6">
-          {/* Main Controls */}
           <div className="flex items-center justify-center gap-6 mb-8">
-            <button
-              onClick={handleSkipBack}
-              className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="30초 뒤로"
-            >
+            <button onClick={() => handleSkip(-30)} className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors" aria-label="30초 뒤로">
               <SkipBack size={40} className="text-gray-700" />
             </button>
-
-            <button
-              onClick={handlePlayPause}
-              className="p-6 bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors"
-              aria-label={playerState.isPlaying ? '일시정지' : '재생'}
-            >
-              {playerState.isPlaying ? (
-                <Pause size={48} fill="white" />
-              ) : (
-                <Play size={48} fill="white" />
-              )}
+            <button onClick={handlePlayPause} className="p-6 bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors" aria-label={isPlaying ? '일시정지' : '재생'}>
+              {isPlaying ? <Pause size={48} fill="white" /> : <Play size={48} fill="white" />}
             </button>
-
-            <button
-              onClick={handleSkipForward}
-              className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="30초 앞으로"
-            >
+            <button onClick={() => handleSkip(30)} className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors" aria-label="30초 앞으로">
               <SkipForward size={40} className="text-gray-700" />
             </button>
           </div>
 
-          {/* Playback Speed */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <span className="text-senior-body text-gray-700">재생 속도:</span>
             {[0.75, 1, 1.25].map((rate) => (
-              <button
-                key={rate}
-                onClick={() => handlePlaybackRateChange(rate)}
-                className={`btn-senior-touch ${
-                  playerState.playbackRate === rate
-                    ? 'bg-green-700 text-white'
-                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-green-600'
-                }`}
-              >
+              <button key={rate} onClick={() => handleRateChange(rate)} className={`btn-senior-touch ${playbackRate === rate ? 'bg-green-700 text-white' : 'bg-white text-gray-700 border-2 border-gray-300'}`}>
                 {rate}x
               </button>
             ))}
           </div>
+
+          {/* Sleep Timer */}
+          <div className="flex items-center justify-center gap-3">
+            <Moon size={24} className="text-gray-600" />
+            <span className="text-senior-body text-gray-700">수면 타이머:</span>
+            {[15, 30, 45, 60].map((min) => (
+              <button key={min} onClick={() => setSleepTimer(sleepTimer === min ? null : min)} className={`btn-senior-touch text-sm ${sleepTimer === min ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border-2 border-gray-300'}`}>
+                {min}분
+              </button>
+            ))}
+            {sleepRemaining > 0 && <span className="text-senior-body text-indigo-600 font-bold">{formatTime(sleepRemaining)}</span>}
+          </div>
         </div>
 
-        {/* Volume Control */}
+        {/* Volume */}
         <div className="flex items-center justify-center gap-4">
           <Volume2 size={32} className="text-gray-600" />
-          <input
-            type="range"
-            min="0"
-            max="100"
-            defaultValue="70"
-            className="flex-1 h-3 bg-gray-200 rounded-full cursor-pointer"
-            aria-label="볼륨 조절"
-          />
+          <input type="range" min="0" max="100" value={volume} onChange={(e) => handleVolumeChange(Number(e.target.value))} className="flex-1 h-3 bg-gray-200 rounded-full cursor-pointer" aria-label="볼륨 조절" />
+          <span className="text-senior-body text-gray-700 w-12">{volume}%</span>
         </div>
       </main>
     </div>
