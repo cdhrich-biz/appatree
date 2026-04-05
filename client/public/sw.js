@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appatree-v1';
+const CACHE_NAME = 'appatree-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -42,8 +42,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API requests - always use network
-  if (event.request.url.includes('/api/')) {
+  // Skip API requests and non-http(s) schemes
+  if (event.request.url.includes('/api/') || !event.request.url.startsWith('http')) {
     return;
   }
 
