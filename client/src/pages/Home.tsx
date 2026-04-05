@@ -200,8 +200,8 @@ export default function Home() {
         <button onClick={() => navigate('/chat')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="AI 채팅">
           <MessageCircle size={32} /><span className="text-senior-button text-xs">AI 채팅</span>
         </button>
-        <button onClick={() => navigate('/library')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="내 서재">
-          <BookOpen size={32} /><span className="text-senior-button text-xs">내 서재</span>
+        <button onClick={() => navigate('/library')} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" aria-label="즐겨찾기">
+          <BookOpen size={32} /><span className="text-senior-button text-xs">즐겨찾기</span>
         </button>
       </nav>
     </div>

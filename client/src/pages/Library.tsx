@@ -33,7 +33,7 @@ export default function Library() {
         <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="뒤로가기">
           <ArrowLeft size={32} className="text-gray-700" />
         </button>
-        <div className="flex-1"><h1 className="text-senior-heading text-gray-800">내 서재</h1></div>
+        <div className="flex-1"><h1 className="text-senior-heading text-gray-800">즐겨찾기</h1></div>
       </header>
 
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex gap-2">

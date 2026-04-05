@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Play, Search as SearchIcon, Heart } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 interface YouTubeSnippet {
   title: string;
@@ -71,7 +72,16 @@ export default function SearchResults() {
     return map;
   }, [detailsData]);
 
-  const bookmarkMutation = trpc.library.addBookmark.useMutation();
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const bookmarkMutation = trpc.library.addBookmark.useMutation({
+    onSuccess: (_data, variables) => {
+      setBookmarkedIds((prev) => new Set(prev).add(variables.videoId));
+      toast.success('즐겨찾기에 추가되었습니다');
+    },
+    onError: () => {
+      toast.error('로그인이 필요합니다');
+    },
+  });
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -195,7 +205,7 @@ export default function SearchResults() {
                         className="p-2 hover:bg-red-50 rounded-full transition-colors"
                         aria-label="즐겨찾기"
                       >
-                        <Heart size={24} className="text-gray-400 hover:text-red-500" />
+                        <Heart size={24} className={bookmarkedIds.has(item.id.videoId) ? "text-red-500 fill-red-500" : "text-gray-400 hover:text-red-500"} />
                       </button>
                     </div>
                   </div>
