@@ -1,9 +1,10 @@
 {
   "buildCommand": "vite build && node build-api.mjs",
-  "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
-  "rewrites": [
-    { "source": "/api/trpc/:path*", "destination": "/api/trpc/[trpc]" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  "outputDirectory": "dist/public",
+  "routes": [
+    { "src": "/api/trpc/(.*)", "dest": "/api/trpc/[trpc].js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
