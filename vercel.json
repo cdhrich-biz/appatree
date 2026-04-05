@@ -2,11 +2,6 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
-  "functions": {
-    "api/trpc/[trpc].mts": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     { "source": "/api/trpc/:path*", "destination": "/api/trpc/[trpc]" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
