@@ -1,9 +1,9 @@
 {
-  "buildCommand": "vite build && node build-api.mjs",
+  "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "functions": {
-    "api/trpc/[trpc].js": {
+    "api/trpc/[trpc].mts": {
       "maxDuration": 30
     }
   },
