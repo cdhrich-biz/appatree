@@ -16,6 +16,7 @@ export const configRouter = router({
     ];
     try {
       const db = await getDb();
+      console.log("[config.categories] db:", db ? "connected" : "null", "DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
       if (!db) return fallback;
       return await db
         .select()
