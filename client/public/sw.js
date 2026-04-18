@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appatree-v3';
+const CACHE_NAME = 'appatree-v4';
 const OFFLINE_URL = '/offline.html';
 const ASSETS_TO_CACHE = [
   '/',
@@ -46,6 +46,16 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API requests and non-http(s) schemes
   if (event.request.url.includes('/api/') || !event.request.url.startsWith('http')) {
+    return;
+  }
+
+  // 크로스 오리진(폰트, YouTube 등) 요청은 SW 개입하지 않음 → CSP connect-src 위반 방지
+  try {
+    const reqUrl = new URL(event.request.url);
+    if (reqUrl.origin !== self.location.origin) {
+      return;
+    }
+  } catch {
     return;
   }
 
