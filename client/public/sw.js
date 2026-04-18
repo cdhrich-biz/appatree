@@ -37,7 +37,5 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 요청은 전부 네트워크로 바이패스 (SW 개입 없음)
-self.addEventListener('fetch', () => {
-  // intentionally no-op: 브라우저가 네이티브로 처리
-});
+// fetch 이벤트 핸들러 없음 → 브라우저가 네이티브로 처리
+// (no-op 핸들러는 Chrome에서 네비게이션 오버헤드 경고 → 등록 자체 안 함)

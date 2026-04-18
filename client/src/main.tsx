@@ -29,6 +29,39 @@ if ('serviceWorker' in navigator) {
     .catch(() => { /* ignore */ });
 }
 
+// ----------------------------------------------------------------------------
+// 스테일 청크 자동 복구
+// 사용자 브라우저가 배포 이전의 index.html을 캐시해 두면 lazy import 된
+// 청크 해시가 더 이상 존재하지 않아 404. 이 경우 1회 자동 리로드로 최신
+// index.html 을 받아 복구한다. sessionStorage 플래그로 무한 리로드 방지.
+// ----------------------------------------------------------------------------
+const RELOAD_FLAG = 'appatree.stale-chunk-reload';
+
+function reloadForStaleChunks() {
+  if (sessionStorage.getItem(RELOAD_FLAG)) return;
+  sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
+  window.location.reload();
+}
+
+// Vite 의 동적 import 프리로드 실패 이벤트
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  reloadForStaleChunks();
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason as { message?: string; name?: string } | undefined;
+  const msg = reason?.message ?? '';
+  if (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Loading CSS chunk') ||
+    msg.includes('Importing a module script failed')
+  ) {
+    reloadForStaleChunks();
+  }
+});
+
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
