@@ -167,19 +167,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
+        // React 내부 모듈 해상도 무결성을 위해 적극적 분리는 피함.
+        // - recharts(+d3): Admin 전용 비중 큼 → 분리 가치 명확
+        // - 나머지는 Vite 기본(동적 import 기반) 자연 분할
         manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("react-dom") || id.includes("react/")) return "react-vendor";
-          if (id.includes("@radix-ui")) return "radix-vendor";
-          if (id.includes("@tanstack") || id.includes("@trpc")) return "data-vendor";
-          if (id.includes("lucide-react")) return "icons";
-          if (id.includes("recharts") || id.includes("d3-")) return "charts";
-          if (id.includes("framer-motion") || id.includes("embla-carousel")) return "motion";
-          if (id.includes("sonner") || id.includes("cmdk") || id.includes("vaul") || id.includes("input-otp")) return "ui-extras";
-          return "vendor";
+          if (id.includes("node_modules/recharts") || id.match(/node_modules\/d3-/)) {
+            return "charts";
+          }
         },
       },
     },
