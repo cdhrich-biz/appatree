@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Mic } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import AppShell from '@/components/AppShell';
 import QuickTools from '@/components/QuickTools';
+import Onboarding from '@/components/Onboarding';
 
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'error';
 
@@ -23,6 +24,24 @@ export default function Home() {
   const categories = categoriesQuery.data ?? [];
   const announcements = announcementsQuery.data ?? [];
   const recentHistory = historyQuery.data ?? [];
+
+  // 개인화: 가장 최근 재생한 영상의 채널명 기반 추천
+  const recommendChannel = recentHistory.find((h) => h.channelName)?.channelName ?? '';
+  const recommendQuery = trpc.youtube.search.useQuery(
+    { query: recommendChannel, maxResults: 8 },
+    { enabled: recommendChannel.length > 0, staleTime: 5 * 60 * 1000 },
+  );
+
+  type RecommendItem = {
+    id: { videoId: string };
+    snippet: { title: string; channelTitle: string; thumbnails: { medium?: { url: string }; high?: { url: string } } };
+  };
+
+  const recommendedItems = useMemo(() => {
+    const items = (recommendQuery.data?.items as RecommendItem[] | undefined) ?? [];
+    const historyIds = new Set(recentHistory.map((h) => h.videoId));
+    return items.filter((i) => !historyIds.has(i.id.videoId)).slice(0, 6);
+  }, [recommendQuery.data, recentHistory]);
 
   useEffect(() => {
     const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
@@ -89,6 +108,7 @@ export default function Home() {
 
   return (
     <AppShell title="아빠트리" subtitle="시니어 오디오북">
+      <Onboarding />
       {announcements.length > 0 && (
         <div className="mb-6 space-y-2" role="region" aria-label="공지사항">
           {announcements.map((a) => (
@@ -179,6 +199,37 @@ export default function Home() {
                     <div className="bg-green-600 h-full rounded-full" style={{ width: `${pct}%` }} />
                   </div>
                   <p className="text-sm text-gray-500 mt-1.5">{pct}% 들음</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {recommendedItems.length > 0 && (
+        <section className="mt-10" aria-labelledby="recommend-heading">
+          <h2 id="recommend-heading" className="text-senior-heading mb-4">
+            당신이 좋아할만한 책
+          </h2>
+          <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 snap-x snap-mandatory">
+            {recommendedItems.map((item) => {
+              const thumb = item.snippet.thumbnails.medium?.url ?? item.snippet.thumbnails.high?.url ?? '';
+              return (
+                <button
+                  key={item.id.videoId}
+                  onClick={() =>
+                    navigate(`/player?id=${item.id.videoId}&title=${encodeURIComponent(item.snippet.title)}`)
+                  }
+                  className="card-senior flex-shrink-0 w-56 snap-start text-left"
+                  aria-label={`${item.snippet.title} 재생`}
+                >
+                  {thumb ? (
+                    <img src={thumb} alt="" className="w-full h-28 rounded-2xl object-cover mb-3" />
+                  ) : (
+                    <div className="w-full h-28 rounded-2xl bg-gray-100 flex items-center justify-center text-4xl mb-3">🎧</div>
+                  )}
+                  <p className="text-senior-body font-semibold line-clamp-2 mb-1">{item.snippet.title}</p>
+                  <p className="text-sm text-gray-500 truncate">{item.snippet.channelTitle}</p>
                 </button>
               );
             })}

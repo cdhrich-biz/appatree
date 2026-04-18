@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import SkeletonCard from '@/components/SkeletonCard';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { X } from 'lucide-react';
 
 interface YouTubeSnippet {
   title: string;
@@ -50,11 +52,17 @@ export default function SearchResults() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'viewCount'>('relevance');
   const announcedForRef = useRef<string>('');
+  const recent = useRecentSearches();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
-    if (q) { setSearchQuery(q); setSubmittedQuery(q); }
+    if (q) {
+      setSearchQuery(q);
+      setSubmittedQuery(q);
+      recent.add(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { data, isLoading } = trpc.youtube.search.useQuery(
@@ -99,10 +107,19 @@ export default function SearchResults() {
   });
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      setSubmittedQuery(searchQuery.trim());
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`, { replace: true });
+    const q = searchQuery.trim();
+    if (q) {
+      setSubmittedQuery(q);
+      recent.add(q);
+      navigate(`/search?q=${encodeURIComponent(q)}`, { replace: true });
     }
+  };
+
+  const handleRecentClick = (q: string) => {
+    setSearchQuery(q);
+    setSubmittedQuery(q);
+    recent.add(q);
+    navigate(`/search?q=${encodeURIComponent(q)}`, { replace: true });
   };
 
   const handleVoice = () => {
@@ -263,8 +280,58 @@ export default function SearchResults() {
           </button>
         </div>
       ) : (
-        <div className="text-center py-16 text-senior-body text-gray-500">
-          위에서 검색어를 입력하거나 마이크를 눌러 말씀해주세요
+        <div className="py-10 space-y-8">
+          {recent.items.length > 0 && (
+            <section aria-labelledby="recent-heading">
+              <div className="flex items-center justify-between mb-3">
+                <h2 id="recent-heading" className="text-senior-heading">최근 검색</h2>
+                <button
+                  onClick={recent.clear}
+                  className="text-senior-body text-gray-500 hover:text-red-600 px-3 py-2 rounded-lg"
+                  aria-label="최근 검색 전체 삭제"
+                >
+                  전체 지우기
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {recent.items.map((q) => (
+                  <div key={q} className="flex items-center">
+                    <button
+                      onClick={() => handleRecentClick(q)}
+                      className="btn-secondary rounded-l-2xl rounded-r-none border-r-0"
+                      style={{ minHeight: 48 }}
+                    >
+                      {q}
+                    </button>
+                    <button
+                      onClick={() => recent.remove(q)}
+                      className="btn-secondary rounded-l-none rounded-r-2xl px-3"
+                      style={{ minHeight: 48 }}
+                      aria-label={`${q} 최근 검색에서 제거`}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section aria-labelledby="hint-heading">
+            <h2 id="hint-heading" className="text-senior-heading mb-3">이런 말도 하실 수 있어요</h2>
+            <div className="flex flex-wrap gap-2">
+              {['감동적인 이야기', '편안한 역사 다큐', '트로트 메들리', '건강 상식', '어르신 뉴스'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleRecentClick(s)}
+                  className="btn-secondary"
+                  style={{ minHeight: 48 }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </AppShell>
