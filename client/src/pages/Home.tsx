@@ -62,7 +62,8 @@ export default function Home() {
       if (text) {
         setVoiceState('processing');
         setStatusMessage('검색 중입니다...');
-        setTimeout(() => navigate(`/search?q=${encodeURIComponent(text)}`), 500);
+        speak(`${text} 검색합니다`);
+        setTimeout(() => navigate(`/search?q=${encodeURIComponent(text)}`), 800);
         recognitionTextRef.current = '';
       } else {
         setVoiceState('idle');

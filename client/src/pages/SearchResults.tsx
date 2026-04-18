@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Search as SearchIcon, Heart, Mic } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import SkeletonCard from '@/components/SkeletonCard';
+import { usePreferences } from '@/contexts/PreferencesContext';
 
 interface YouTubeSnippet {
   title: string;
@@ -44,9 +45,11 @@ function formatViews(count: string): string {
 
 export default function SearchResults() {
   const [, navigate] = useLocation();
+  const { speak } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'viewCount'>('relevance');
+  const announcedForRef = useRef<string>('');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -61,6 +64,16 @@ export default function SearchResults() {
 
   const items = (data?.items as YouTubeSearchItem[] | undefined) ?? [];
   const videoIds = useMemo(() => items.map((i) => i.id.videoId), [items]);
+
+  useEffect(() => {
+    if (!data || !submittedQuery) return;
+    const key = `${submittedQuery}::${sortBy}`;
+    if (announcedForRef.current === key) return;
+    announcedForRef.current = key;
+    const count = items.length;
+    if (count > 0) speak(`${count}건 찾았습니다`);
+    else speak('검색 결과가 없습니다');
+  }, [data, submittedQuery, sortBy, items.length, speak]);
 
   const { data: detailsData } = trpc.youtube.videosBatch.useQuery(
     { videoIds },

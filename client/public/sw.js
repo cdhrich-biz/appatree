@@ -1,8 +1,10 @@
-const CACHE_NAME = 'appatree-v2';
+const CACHE_NAME = 'appatree-v3';
+const OFFLINE_URL = '/offline.html';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  OFFLINE_URL,
 ];
 
 // Install event - cache assets
@@ -72,8 +74,12 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         })
-        .catch(() => {
-          // Return offline page or cached response
+        .catch(async () => {
+          // 네비게이션 요청이면 오프라인 페이지 제공
+          if (event.request.mode === 'navigate') {
+            const offline = await caches.match(OFFLINE_URL);
+            if (offline) return offline;
+          }
           return caches.match('/index.html');
         });
     })

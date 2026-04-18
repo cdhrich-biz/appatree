@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>오프라인 - 아빠트리</title>
+    <meta name="theme-color" content="#15803d" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fafaf9; font-family: 'Noto Sans KR', system-ui, -apple-system, sans-serif; color: #1f2937; }
+      .wrap {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.25rem;
+        text-align: center;
+      }
+      .icon {
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        background: #f0fdf4;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 64px;
+        margin-bottom: 2rem;
+      }
+      h1 { font-size: 2.25rem; font-weight: 700; margin: 0 0 0.75rem; line-height: 1.2; letter-spacing: -0.02em; }
+      p { font-size: 1.25rem; line-height: 1.7; color: #4b5563; margin: 0 0 2rem; max-width: 24rem; }
+      button {
+        background: #15803d;
+        color: white;
+        border: 0;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        min-height: 64px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(21, 128, 61, 0.35);
+      }
+      button:hover { background: #166534; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="icon" aria-hidden>📡</div>
+      <h1>인터넷이 끊어졌어요</h1>
+      <p>
+        지금은 오프라인 상태예요.<br />
+        와이파이나 데이터 연결을 확인한 뒤 다시 시도해주세요.
+      </p>
+      <button type="button" onclick="location.reload()">다시 연결하기</button>
+    </div>
+  </body>
+</html>
