@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon, ChevronLeft, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import AppShell from '@/components/AppShell';
+import { playbackQueue, type QueueItem } from '@/lib/playbackQueue';
+import { usePlayerVoice, type PlayerVoiceCommand } from '@/hooks/usePlayerVoice';
+import { toast } from 'sonner';
 
 declare global {
   interface Window {
@@ -18,6 +21,7 @@ interface YTPlayer {
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   setPlaybackRate(rate: number): void;
   setVolume(volume: number): void;
+  loadVideoById(videoId: string): void;
   getCurrentTime(): number;
   getDuration(): number;
   getPlayerState(): number;
@@ -38,7 +42,7 @@ interface VideoDetail {
 
 export default function Player() {
   const [, navigate] = useLocation();
-  const { prefs } = usePreferences();
+  const { prefs, speak } = usePreferences();
 
   const params = useMemo(() => {
     const p = new URLSearchParams(window.location.search);
@@ -58,20 +62,33 @@ export default function Player() {
   const [videoChannel, setVideoChannel] = useState('');
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
   const [sleepRemaining, setSleepRemaining] = useState(0);
+  const [currentVideoId, setCurrentVideoId] = useState(params.id);
+  const [nextItem, setNextItem] = useState<QueueItem | null>(null);
+  const [prevItem, setPrevItem] = useState<QueueItem | null>(null);
 
   const playerRef = useRef<YTPlayer | null>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval>>();
   const saveInterval = useRef<ReturnType<typeof setInterval>>();
   const sleepInterval = useRef<ReturnType<typeof setInterval>>();
+  const historyRecordedFor = useRef<string>('');
+  const autoplayOnReadyRef = useRef<boolean>(false);
 
   const addHistoryMutation = trpc.library.addHistory.useMutation();
   const updateProgressMutation = trpc.library.updateProgress.useMutation();
   const bookmarkMutation = trpc.library.addBookmark.useMutation();
 
   const videoQuery = trpc.youtube.video.useQuery(
-    { videoId: params.id },
-    { enabled: !!params.id }
+    { videoId: currentVideoId },
+    { enabled: !!currentVideoId }
   );
+
+  // 큐 위치를 현재 재생 ID에 동기화 + 다음/이전 미리보기 갱신
+  useEffect(() => {
+    if (!currentVideoId) return;
+    playbackQueue.alignTo(currentVideoId);
+    setNextItem(playbackQueue.getNext());
+    setPrevItem(playbackQueue.getPrevious());
+  }, [currentVideoId]);
 
   useEffect(() => {
     const items = (videoQuery.data?.items as VideoDetail[] | undefined);
@@ -79,8 +96,19 @@ export default function Player() {
       const detail = items[0];
       setVideoTitle(detail.snippet.title);
       setVideoChannel(detail.snippet.channelTitle);
+      if (historyRecordedFor.current !== currentVideoId) {
+        historyRecordedFor.current = currentVideoId;
+        addHistoryMutation.mutate({
+          videoId: currentVideoId,
+          title: detail.snippet.title,
+          channelName: detail.snippet.channelTitle,
+          thumbnailUrl: detail.snippet.thumbnails.high?.url,
+          totalSeconds: Math.floor(duration),
+        });
+      }
     }
-  }, [videoQuery.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoQuery.data, currentVideoId]);
 
   useEffect(() => {
     if (!params.id) return;
@@ -97,18 +125,26 @@ export default function Player() {
             if (params.startTime > 0) {
               event.target.seekTo(params.startTime, true);
             }
-            const items = (videoQuery.data?.items as VideoDetail[] | undefined);
-            const detail = items?.[0];
-            addHistoryMutation.mutate({
-              videoId: params.id,
-              title: detail?.snippet.title ?? params.title,
-              channelName: detail?.snippet.channelTitle,
-              thumbnailUrl: detail?.snippet.thumbnails.high?.url,
-              totalSeconds: Math.floor(d),
-            });
           },
           onStateChange: (event: { data: number }) => {
             setIsPlaying(event.data === 1);
+            // 0 = ended → 자동 다음 (autoplay on)
+            if (event.data === 0 && prefs.autoplay) {
+              const nxt = playbackQueue.advance();
+              if (nxt) {
+                autoplayOnReadyRef.current = true;
+                playerRef.current?.loadVideoById(nxt.videoId);
+                setCurrentVideoId(nxt.videoId);
+                setVideoTitle(nxt.title);
+                setVideoChannel(nxt.channelName ?? '');
+                window.history.replaceState(
+                  null,
+                  '',
+                  `/player?id=${nxt.videoId}&title=${encodeURIComponent(nxt.title)}`,
+                );
+                speak('다음 곡을 재생합니다');
+              }
+            }
           },
         },
       } as Record<string, unknown>);
@@ -138,18 +174,19 @@ export default function Player() {
   }, [isPlaying]);
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!currentVideoId) return;
     saveInterval.current = setInterval(() => {
       if (playerRef.current && isPlaying) {
         updateProgressMutation.mutate({
-          videoId: params.id,
+          videoId: currentVideoId,
           progressSeconds: Math.floor(playerRef.current.getCurrentTime()),
           totalSeconds: Math.floor(playerRef.current.getDuration()),
         });
       }
     }, 30000);
     return () => clearInterval(saveInterval.current);
-  }, [params.id, isPlaying]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideoId, isPlaying]);
 
   useEffect(() => {
     if (sleepTimer === null) {
@@ -174,40 +211,119 @@ export default function Player() {
     return () => clearInterval(sleepInterval.current);
   }, [sleepTimer, volume]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (isPlaying) playerRef.current?.pauseVideo();
     else playerRef.current?.playVideo();
-  };
+  }, [isPlaying]);
 
-  const handleSkip = (seconds: number) => {
-    if (!playerRef.current) return;
-    const newTime = Math.max(0, Math.min(duration, playerRef.current.getCurrentTime() + seconds));
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
-  };
+  const handleSkip = useCallback(
+    (seconds: number) => {
+      if (!playerRef.current) return;
+      const newTime = Math.max(
+        0,
+        Math.min(duration, playerRef.current.getCurrentTime() + seconds),
+      );
+      playerRef.current.seekTo(newTime, true);
+      setCurrentTime(newTime);
+    },
+    [duration],
+  );
 
   const handleRateChange = (rate: number) => {
     setPlaybackRate(rate);
     playerRef.current?.setPlaybackRate(rate);
   };
 
-  const handleVolumeChange = (v: number) => {
-    setVolume(v);
-    playerRef.current?.setVolume(v);
-  };
+  const handleVolumeChange = useCallback((v: number) => {
+    const clamped = Math.max(0, Math.min(100, v));
+    setVolume(clamped);
+    playerRef.current?.setVolume(clamped);
+  }, []);
+
+  const loadQueueItem = useCallback((item: QueueItem) => {
+    if (!playerRef.current) return;
+    playerRef.current.loadVideoById(item.videoId);
+    setCurrentVideoId(item.videoId);
+    setVideoTitle(item.title);
+    setVideoChannel(item.channelName ?? '');
+    setCurrentTime(0);
+    window.history.replaceState(
+      null,
+      '',
+      `/player?id=${item.videoId}&title=${encodeURIComponent(item.title)}`,
+    );
+  }, []);
+
+  const handleNext = useCallback(() => {
+    const nxt = playbackQueue.advance();
+    if (nxt) {
+      loadQueueItem(nxt);
+      speak('다음 곡으로 넘어갑니다');
+    } else {
+      toast.info('더 들을 곡이 없어요');
+    }
+  }, [loadQueueItem, speak]);
+
+  const handlePrevious = useCallback(() => {
+    const prv = playbackQueue.retreat();
+    if (prv) {
+      loadQueueItem(prv);
+      speak('이전 곡으로 돌아갑니다');
+    } else {
+      toast.info('이전 곡이 없어요');
+    }
+  }, [loadQueueItem, speak]);
 
   const handleBookmark = () => {
-    if (!params.id) return;
+    if (!currentVideoId) return;
     const items = (videoQuery.data?.items as VideoDetail[] | undefined);
     const detail = items?.[0];
     bookmarkMutation.mutate({
-      videoId: params.id,
+      videoId: currentVideoId,
       title: videoTitle,
       channelName: videoChannel,
       thumbnailUrl: detail?.snippet.thumbnails.high?.url,
       duration: detail?.contentDetails.duration,
     });
   };
+
+  // 음성 명령 핸들러
+  const handleVoiceCommand = useCallback(
+    (cmd: PlayerVoiceCommand) => {
+      switch (cmd) {
+        case 'play':
+          playerRef.current?.playVideo();
+          break;
+        case 'pause':
+          playerRef.current?.pauseVideo();
+          break;
+        case 'next':
+          handleNext();
+          break;
+        case 'previous':
+          handlePrevious();
+          break;
+        case 'seekForward':
+          handleSkip(30);
+          break;
+        case 'seekBackward':
+          handleSkip(-30);
+          break;
+        case 'volumeUp':
+          handleVolumeChange(volume + 10);
+          break;
+        case 'volumeDown':
+          handleVolumeChange(volume - 10);
+          break;
+      }
+    },
+    [handleNext, handlePrevious, handleSkip, handleVolumeChange, volume],
+  );
+
+  const voice = usePlayerVoice({
+    onCommand: handleVoiceCommand,
+    onConfirm: (reply) => speak(reply),
+  });
 
   const formatTime = (seconds: number): string => {
     const h = Math.floor(seconds / 3600);
@@ -229,14 +345,37 @@ export default function Player() {
       showBack
       hideBottomNav
       headerRight={
-        <button
-          onClick={handleBookmark}
-          className="btn-icon"
-          aria-label={bookmarked ? '즐겨찾기 완료' : '즐겨찾기 추가'}
-          aria-pressed={bookmarked}
-        >
-          <Heart size={28} className={bookmarked ? 'text-red-500 fill-red-500' : 'text-gray-500'} />
-        </button>
+        <>
+          {voice.supported && (
+            <button
+              onClick={voice.toggle}
+              className="btn-icon relative"
+              aria-label={voice.listening ? '음성 명령 끄기' : '음성 명령 켜기'}
+              aria-pressed={voice.listening}
+              title={voice.listening ? '음성 제어 중' : '음성 제어 켜기'}
+            >
+              {voice.listening ? (
+                <>
+                  <Mic size={28} className="text-red-500" />
+                  <span
+                    className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"
+                    aria-hidden
+                  />
+                </>
+              ) : (
+                <MicOff size={28} className="text-gray-500" />
+              )}
+            </button>
+          )}
+          <button
+            onClick={handleBookmark}
+            className="btn-icon"
+            aria-label={bookmarked ? '즐겨찾기 완료' : '즐겨찾기 추가'}
+            aria-pressed={bookmarked}
+          >
+            <Heart size={28} className={bookmarked ? 'text-red-500 fill-red-500' : 'text-gray-500'} />
+          </button>
+        </>
       }
     >
       <div className="w-full bg-black rounded-3xl overflow-hidden aspect-video mb-6 shadow-lg">
@@ -278,13 +417,13 @@ export default function Player() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-6 mb-8">
+      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-4">
         <button
           onClick={() => handleSkip(-30)}
-          className="flex flex-col items-center gap-1 p-4 rounded-2xl hover:bg-gray-100 transition-colors"
+          className="flex flex-col items-center gap-1 p-3 rounded-2xl hover:bg-gray-100 transition-colors"
           aria-label="30초 뒤로"
         >
-          <SkipBack size={40} className="text-gray-800" />
+          <SkipBack size={36} className="text-gray-800" />
           <span className="text-sm font-medium text-gray-600">-30초</span>
         </button>
         <button
@@ -297,13 +436,61 @@ export default function Player() {
         </button>
         <button
           onClick={() => handleSkip(30)}
-          className="flex flex-col items-center gap-1 p-4 rounded-2xl hover:bg-gray-100 transition-colors"
+          className="flex flex-col items-center gap-1 p-3 rounded-2xl hover:bg-gray-100 transition-colors"
           aria-label="30초 앞으로"
         >
-          <SkipForward size={40} className="text-gray-800" />
+          <SkipForward size={36} className="text-gray-800" />
           <span className="text-sm font-medium text-gray-600">+30초</span>
         </button>
       </div>
+
+      {(prevItem || nextItem) && (
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={handlePrevious}
+            disabled={!prevItem}
+            className="btn-secondary flex-1 disabled:opacity-40"
+            aria-label={prevItem ? `이전: ${prevItem.title}` : '이전 곡 없음'}
+          >
+            <ChevronLeft size={24} />
+            <span>이전 곡</span>
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={!nextItem}
+            className="btn-secondary flex-1 disabled:opacity-40"
+            aria-label={nextItem ? `다음: ${nextItem.title}` : '다음 곡 없음'}
+          >
+            <span>다음 곡</span>
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      )}
+
+      {nextItem && (
+        <div className="card-senior mb-4">
+          <p className="text-sm text-gray-500 mb-2">다음 재생</p>
+          <div className="flex items-center gap-3">
+            {nextItem.thumbnailUrl ? (
+              <img
+                src={nextItem.thumbnailUrl}
+                alt=""
+                className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
+                🎧
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-senior-body font-semibold line-clamp-2">{nextItem.title}</p>
+              {nextItem.channelName && (
+                <p className="text-sm text-gray-500 truncate">{nextItem.channelName}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card-senior mb-4">
         <p className="text-senior-body text-gray-700 mb-3">재생 속도</p>

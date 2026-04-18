@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import SkeletonCard from '@/components/SkeletonCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { playbackQueue } from '@/lib/playbackQueue';
 
 export default function Library() {
   const [, navigate] = useLocation();
@@ -27,6 +28,13 @@ export default function Library() {
   const isLoading = activeTab === 'bookmarks' ? bookmarksQuery.isLoading : historyQuery.isLoading;
 
   const handlePlay = (videoId: string, title: string, progressSeconds?: number) => {
+    const queueItems = displayItems.map((it) => ({
+      videoId: it.videoId,
+      title: it.title,
+      thumbnailUrl: it.thumbnailUrl ?? undefined,
+      channelName: it.channelName ?? undefined,
+    }));
+    playbackQueue.set(queueItems, videoId);
     const url = `/player?id=${videoId}&title=${encodeURIComponent(title)}${progressSeconds ? `&t=${progressSeconds}` : ''}`;
     navigate(url);
   };

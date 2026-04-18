@@ -8,6 +8,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { X } from 'lucide-react';
+import { playbackQueue } from '@/lib/playbackQueue';
 
 interface YouTubeSnippet {
   title: string;
@@ -140,6 +141,16 @@ export default function SearchResults() {
   };
 
   const handlePlayClick = (item: YouTubeSearchItem) => {
+    const queueItems = items.map((it) => {
+      const detail = detailsMap.get(it.id.videoId);
+      return {
+        videoId: it.id.videoId,
+        title: it.snippet.title,
+        thumbnailUrl: detail?.snippet.thumbnails.high?.url ?? it.snippet.thumbnails.medium?.url,
+        channelName: it.snippet.channelTitle,
+      };
+    });
+    playbackQueue.set(queueItems, item.id.videoId);
     navigate(`/player?id=${item.id.videoId}&title=${encodeURIComponent(item.snippet.title)}`);
   };
 
