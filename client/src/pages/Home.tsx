@@ -4,6 +4,7 @@ import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import AppShell from '@/components/AppShell';
+import QuickTools from '@/components/QuickTools';
 
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'error';
 
@@ -106,6 +107,8 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      <QuickTools />
 
       <section
         className="flex flex-col items-center text-center py-4"

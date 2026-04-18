@@ -11,6 +11,9 @@ import Player from "./pages/Player";
 import AIChat from "./pages/AIChat";
 import Library from "./pages/Library";
 import Settings from "./pages/Settings";
+import VideoHome from "./pages/VideoHome";
+import Camera from "./pages/Camera";
+import Magnifier from "./pages/Magnifier";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -29,6 +32,9 @@ function Router() {
       <Route path={"/chat"} component={AIChat} />
       <Route path={"/library"} component={Library} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/video"} component={VideoHome} />
+      <Route path={"/camera"} component={Camera} />
+      <Route path={"/magnifier"} component={Magnifier} />
 
       {/* Admin Routes */}
       <Route path="/admin">{() => <AdminLayout><AdminOverview /></AdminLayout>}</Route>
