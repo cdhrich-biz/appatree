@@ -198,7 +198,7 @@ const configAdminRouter = router({
     }),
 
   update: adminProcedure
-    .input(z.object({ key: z.string(), value: z.string(), description: z.string().optional() }))
+    .input(z.object({ key: z.string().min(1).max(128), value: z.string().max(10000), description: z.string().max(500).optional() }))
     .mutation(async ({ input, ctx }) => {
       const db = requireDb(await getDb());
       await db

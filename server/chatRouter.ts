@@ -30,7 +30,7 @@ async function getConfigValue(db: NonNullable<Awaited<ReturnType<typeof getDb>>>
 
 export const chatRouter = router({
   send: protectedProcedure
-    .input(z.object({ sessionId: z.number().optional(), message: z.string().min(1) }))
+    .input(z.object({ sessionId: z.number().int().positive().optional(), message: z.string().min(1).max(1000) }))
     .mutation(async ({ input, ctx }) => {
       const db = requireDb(await getDb());
 

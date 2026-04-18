@@ -113,3 +113,7 @@ temp/
 client/public/__manus__/version.json
 
 .vercel
+
+# Local utility scripts that may contain secrets
+scripts/*.local.mjs
+scripts/test-*.mjs
