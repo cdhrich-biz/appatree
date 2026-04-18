@@ -4,6 +4,7 @@ import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 import AppShell from '@/components/AppShell';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function Settings() {
   const [, navigate] = useLocation();
@@ -14,6 +15,7 @@ export default function Settings() {
   const [autoplay, setAutoplay] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmType, setConfirmType] = useState<'history' | 'bookmarks' | null>(null);
 
   const prefsQuery = trpc.preferences.get.useQuery(undefined, { retry: false });
   const updateMutation = trpc.preferences.update.useMutation();
@@ -148,14 +150,14 @@ export default function Settings() {
         <h2 className="text-senior-heading mb-4">데이터 관리</h2>
         <div className="space-y-2">
           <button
-            onClick={() => { if (confirm('재생 이력을 모두 삭제하시겠습니까?')) clearHistoryMutation.mutate(); }}
+            onClick={() => setConfirmType('history')}
             className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-red-200 hover:bg-red-50 transition-colors"
           >
             <Trash2 size={24} className="text-red-500" />
             <span className="text-senior-body text-red-600">재생 이력 삭제</span>
           </button>
           <button
-            onClick={() => { if (confirm('즐겨찾기를 모두 삭제하시겠습니까?')) clearBookmarksMutation.mutate(); }}
+            onClick={() => setConfirmType('bookmarks')}
             className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-red-200 hover:bg-red-50 transition-colors"
           >
             <Trash2 size={24} className="text-red-500" />
@@ -185,6 +187,23 @@ export default function Settings() {
       >
         {isSaving ? '저장 중...' : '저장하고 돌아가기'}
       </button>
+
+      <ConfirmDialog
+        open={confirmType === 'history'}
+        title="재생 이력을 모두 삭제할까요?"
+        description="이 작업은 되돌릴 수 없어요"
+        confirmLabel="네, 삭제해요"
+        onConfirm={() => { clearHistoryMutation.mutate(); setConfirmType(null); }}
+        onCancel={() => setConfirmType(null)}
+      />
+      <ConfirmDialog
+        open={confirmType === 'bookmarks'}
+        title="즐겨찾기를 모두 삭제할까요?"
+        description="저장해둔 책이 모두 사라져요"
+        confirmLabel="네, 삭제해요"
+        onConfirm={() => { clearBookmarksMutation.mutate(); setConfirmType(null); }}
+        onCancel={() => setConfirmType(null)}
+      />
     </AppShell>
   );
 }

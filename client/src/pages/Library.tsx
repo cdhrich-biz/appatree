@@ -2,16 +2,23 @@ import { useState } from 'react';
 import { Trash2, Play } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import SkeletonCard from '@/components/SkeletonCard';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function Library() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<'bookmarks' | 'recent'>('bookmarks');
+  const [pendingRemove, setPendingRemove] = useState<{ videoId: string; title: string } | null>(null);
 
   const bookmarksQuery = trpc.library.bookmarks.useQuery({ limit: 50, offset: 0 });
   const historyQuery = trpc.library.history.useQuery({ limit: 50, offset: 0 });
   const removeBookmarkMutation = trpc.library.removeBookmark.useMutation({
-    onSuccess: () => bookmarksQuery.refetch(),
+    onSuccess: () => {
+      bookmarksQuery.refetch();
+      toast.success('즐겨찾기에서 제거했습니다');
+    },
   });
 
   const bookmarkItems = bookmarksQuery.data ?? [];
@@ -24,8 +31,15 @@ export default function Library() {
     navigate(url);
   };
 
-  const handleRemoveBookmark = (videoId: string) => {
-    removeBookmarkMutation.mutate({ videoId });
+  const handleRemoveBookmarkRequest = (videoId: string, title: string) => {
+    setPendingRemove({ videoId, title });
+  };
+
+  const confirmRemove = () => {
+    if (pendingRemove) {
+      removeBookmarkMutation.mutate({ videoId: pendingRemove.videoId });
+      setPendingRemove(null);
+    }
   };
 
   return (
@@ -52,7 +66,7 @@ export default function Library() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-16 text-senior-body text-gray-500">불러오는 중...</div>
+        <SkeletonCard count={4} />
       ) : displayItems.length > 0 ? (
         <div className="space-y-3">
           {displayItems.map((item) => {
@@ -96,7 +110,7 @@ export default function Library() {
                   </button>
                   {activeTab === 'bookmarks' && (
                     <button
-                      onClick={() => handleRemoveBookmark(item.videoId)}
+                      onClick={() => handleRemoveBookmarkRequest(item.videoId, item.title)}
                       className="p-2 rounded-full transition-colors hover:bg-red-50 text-red-500"
                       aria-label={`${item.title} 즐겨찾기 해제`}
                     >
@@ -119,6 +133,16 @@ export default function Library() {
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingRemove}
+        title="즐겨찾기에서 제거할까요?"
+        description={pendingRemove?.title}
+        confirmLabel="네, 제거해요"
+        cancelLabel="아니요"
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </AppShell>
   );
 }

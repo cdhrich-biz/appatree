@@ -243,8 +243,12 @@ export default function Player() {
         <div id="yt-player" className="w-full h-full" />
       </div>
 
-      <h2 className="text-senior-heading mb-1 line-clamp-2">{videoTitle}</h2>
-      <p className="text-senior-body text-gray-600 mb-6">{videoChannel || '불러오는 중...'}</p>
+      <h2 className="text-senior-heading mb-1 line-clamp-2">{videoTitle || '제목을 불러오는 중이에요'}</h2>
+      {videoChannel ? (
+        <p className="text-senior-body text-gray-600 mb-6">{videoChannel}</p>
+      ) : (
+        <div className="h-5 bg-gray-200 rounded-md w-40 animate-pulse mb-6" aria-hidden />
+      )}
 
       <div className="mb-6">
         <div

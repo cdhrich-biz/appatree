@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Volume2 } from 'lucide-react';
+import { Send, Mic, Volume2, RotateCcw } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
@@ -121,8 +121,31 @@ export default function AIChat() {
 
   const showPresets = messages.length <= 1;
 
+  const handleRestart = () => {
+    const greeting = greetingQuery.data ?? '안녕하세요! 저는 당신의 오디오북 추천 도우미입니다. 어떤 책을 찾고 계신가요?';
+    setMessages([{ id: '0', role: 'assistant', content: greeting, timestamp: new Date() }]);
+    setSessionId(undefined);
+    setInputValue('');
+  };
+
   return (
-    <AppShell title="AI 대화" subtitle="오디오북 추천 상담" showBack>
+    <AppShell
+      title="AI 대화"
+      subtitle="오디오북 추천 상담"
+      showBack
+      headerRight={
+        messages.length > 1 ? (
+          <button
+            onClick={handleRestart}
+            className="btn-icon"
+            aria-label="새 대화 시작하기"
+            title="새 대화"
+          >
+            <RotateCcw size={26} />
+          </button>
+        ) : undefined
+      }
+    >
       {showPresets && (
         <div className="mb-5">
           <p className="text-senior-body text-gray-600 mb-3">이렇게 물어볼 수 있어요</p>

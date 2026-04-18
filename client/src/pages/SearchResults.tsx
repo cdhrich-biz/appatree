@@ -4,6 +4,7 @@ import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import SkeletonCard from '@/components/SkeletonCard';
 
 interface YouTubeSnippet {
   title: string;
@@ -178,7 +179,7 @@ export default function SearchResults() {
       )}
 
       {isLoading ? (
-        <div className="text-center py-16 text-senior-body text-gray-500">검색 중입니다...</div>
+        <SkeletonCard count={5} />
       ) : items.length > 0 ? (
         <div className="space-y-3">
           {items.map((item) => {
