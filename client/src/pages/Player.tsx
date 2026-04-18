@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import AppShell from '@/components/AppShell';
 
 declare global {
   interface Window {
@@ -36,8 +38,8 @@ interface VideoDetail {
 
 export default function Player() {
   const [, navigate] = useLocation();
+  const { prefs } = usePreferences();
 
-  // Parse URL params once
   const params = useMemo(() => {
     const p = new URLSearchParams(window.location.search);
     return {
@@ -51,7 +53,7 @@ export default function Player() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [volume, setVolume] = useState(70);
+  const [volume, setVolume] = useState(prefs.volume);
   const [videoTitle, setVideoTitle] = useState(params.title);
   const [videoChannel, setVideoChannel] = useState('');
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
@@ -66,13 +68,11 @@ export default function Player() {
   const updateProgressMutation = trpc.library.updateProgress.useMutation();
   const bookmarkMutation = trpc.library.addBookmark.useMutation();
 
-  // Fetch real video details
   const videoQuery = trpc.youtube.video.useQuery(
     { videoId: params.id },
     { enabled: !!params.id }
   );
 
-  // Update metadata from API response
   useEffect(() => {
     const items = (videoQuery.data?.items as VideoDetail[] | undefined);
     if (items && items.length > 0) {
@@ -82,7 +82,6 @@ export default function Player() {
     }
   }, [videoQuery.data]);
 
-  // Load YouTube IFrame API and create player
   useEffect(() => {
     if (!params.id) return;
 
@@ -94,16 +93,12 @@ export default function Player() {
           onReady: (event: { target: YTPlayer }) => {
             const d = event.target.getDuration();
             setDuration(d);
-
-            // Seek to saved position
+            event.target.setVolume(prefs.volume);
             if (params.startTime > 0) {
               event.target.seekTo(params.startTime, true);
             }
-
-            // Get video detail for history
             const items = (videoQuery.data?.items as VideoDetail[] | undefined);
             const detail = items?.[0];
-
             addHistoryMutation.mutate({
               videoId: params.id,
               title: detail?.snippet.title ?? params.title,
@@ -133,7 +128,6 @@ export default function Player() {
     };
   }, [params.id]);
 
-  // Progress tracking
   useEffect(() => {
     progressInterval.current = setInterval(() => {
       if (playerRef.current && isPlaying) {
@@ -143,7 +137,6 @@ export default function Player() {
     return () => clearInterval(progressInterval.current);
   }, [isPlaying]);
 
-  // Save progress every 30 seconds
   useEffect(() => {
     if (!params.id) return;
     saveInterval.current = setInterval(() => {
@@ -158,7 +151,6 @@ export default function Player() {
     return () => clearInterval(saveInterval.current);
   }, [params.id, isPlaying]);
 
-  // Sleep timer
   useEffect(() => {
     if (sleepTimer === null) {
       clearInterval(sleepInterval.current);
@@ -224,92 +216,146 @@ export default function Player() {
     return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
 
+  const bookmarked = bookmarkMutation.isSuccess;
+  const rateOptions: { value: number; label: string }[] = [
+    { value: 0.75, label: '느림' },
+    { value: 1, label: '보통' },
+    { value: 1.25, label: '빠름' },
+  ];
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="뒤로가기">
-          <ArrowLeft size={32} className="text-gray-700" />
+    <AppShell
+      title="재생 중"
+      showBack
+      hideBottomNav
+      headerRight={
+        <button
+          onClick={handleBookmark}
+          className="btn-icon"
+          aria-label={bookmarked ? '즐겨찾기 완료' : '즐겨찾기 추가'}
+          aria-pressed={bookmarked}
+        >
+          <Heart size={28} className={bookmarked ? 'text-red-500 fill-red-500' : 'text-gray-500'} />
         </button>
-        <div className="flex-1"><h1 className="text-senior-heading text-gray-800">재생 중</h1></div>
-        <button onClick={handleBookmark} className="p-2 hover:bg-red-50 rounded-lg transition-colors" aria-label="즐겨찾기">
-          <Heart size={28} className={bookmarkMutation.isSuccess ? "text-red-500 fill-red-500" : "text-gray-400"} />
-        </button>
-      </header>
+      }
+    >
+      <div className="w-full bg-black rounded-3xl overflow-hidden aspect-video mb-6 shadow-lg">
+        <div id="yt-player" className="w-full h-full" />
+      </div>
 
-      <main className="flex-1 flex flex-col px-4 py-6">
-        <div className="w-full bg-black rounded-lg overflow-hidden mb-6 aspect-video">
-          <div id="yt-player" className="w-full h-full" />
-        </div>
+      <h2 className="text-senior-heading mb-1 line-clamp-2">{videoTitle}</h2>
+      <p className="text-senior-body text-gray-600 mb-6">{videoChannel || '불러오는 중...'}</p>
 
-        <div className="mb-6">
-          <h2 className="text-senior-heading text-gray-800 mb-2">{videoTitle}</h2>
-          <p className="text-senior-body text-gray-600">{videoChannel || '로딩 중...'}</p>
-        </div>
-
-        {/* Progress */}
-        <div className="mb-6">
+      <div className="mb-6">
+        <div
+          className="bg-gray-200 rounded-full h-3 cursor-pointer"
+          role="slider"
+          aria-label="재생 위치"
+          aria-valuemin={0}
+          aria-valuemax={Math.floor(duration)}
+          aria-valuenow={Math.floor(currentTime)}
+          onClick={(e) => {
+            if (!playerRef.current || duration === 0) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            const newTime = pct * duration;
+            playerRef.current.seekTo(newTime, true);
+            setCurrentTime(newTime);
+          }}
+        >
           <div
-            className="bg-gray-200 rounded-full h-3 mb-2 cursor-pointer hover:h-4 transition-all"
-            onClick={(e) => {
-              if (!playerRef.current || duration === 0) return;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = (e.clientX - rect.left) / rect.width;
-              const newTime = pct * duration;
-              playerRef.current.seekTo(newTime, true);
-              setCurrentTime(newTime);
-            }}
-          >
-            <div className="bg-green-700 h-full rounded-full transition-all" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
-          </div>
-          <div className="flex justify-between text-senior-body text-gray-600">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
+            className="bg-green-700 h-full rounded-full transition-all"
+            style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+          />
         </div>
-
-        {/* Controls */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-center gap-6 mb-8">
-            <button onClick={() => handleSkip(-30)} className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors" aria-label="30초 뒤로">
-              <SkipBack size={40} className="text-gray-700" />
-            </button>
-            <button onClick={handlePlayPause} className="p-6 bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors" aria-label={isPlaying ? '일시정지' : '재생'}>
-              {isPlaying ? <Pause size={48} fill="white" /> : <Play size={48} fill="white" />}
-            </button>
-            <button onClick={() => handleSkip(30)} className="p-4 bg-white hover:bg-gray-100 rounded-full transition-colors" aria-label="30초 앞으로">
-              <SkipForward size={40} className="text-gray-700" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="text-senior-body text-gray-700">재생 속도:</span>
-            {[0.75, 1, 1.25].map((rate) => (
-              <button key={rate} onClick={() => handleRateChange(rate)} className={`btn-senior-touch ${playbackRate === rate ? 'bg-green-700 text-white' : 'bg-white text-gray-700 border-2 border-gray-300'}`}>
-                {rate}x
-              </button>
-            ))}
-          </div>
-
-          {/* Sleep Timer */}
-          <div className="flex items-center justify-center gap-3">
-            <Moon size={24} className="text-gray-600" />
-            <span className="text-senior-body text-gray-700">수면 타이머:</span>
-            {[15, 30, 45, 60].map((min) => (
-              <button key={min} onClick={() => setSleepTimer(sleepTimer === min ? null : min)} className={`btn-senior-touch text-sm ${sleepTimer === min ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border-2 border-gray-300'}`}>
-                {min}분
-              </button>
-            ))}
-            {sleepRemaining > 0 && <span className="text-senior-body text-indigo-600 font-bold">{formatTime(sleepRemaining)}</span>}
-          </div>
+        <div className="flex justify-between text-senior-body text-gray-600 mt-2">
+          <span aria-label={`현재 ${formatTime(currentTime)}`}>{formatTime(currentTime)}</span>
+          <span aria-label={`전체 ${formatTime(duration)}`}>{formatTime(duration)}</span>
         </div>
+      </div>
 
-        {/* Volume */}
-        <div className="flex items-center justify-center gap-4">
-          <Volume2 size={32} className="text-gray-600" />
-          <input type="range" min="0" max="100" value={volume} onChange={(e) => handleVolumeChange(Number(e.target.value))} className="flex-1 h-3 bg-gray-200 rounded-full cursor-pointer" aria-label="볼륨 조절" />
-          <span className="text-senior-body text-gray-700 w-12">{volume}%</span>
+      <div className="flex items-center justify-center gap-6 mb-8">
+        <button
+          onClick={() => handleSkip(-30)}
+          className="flex flex-col items-center gap-1 p-4 rounded-2xl hover:bg-gray-100 transition-colors"
+          aria-label="30초 뒤로"
+        >
+          <SkipBack size={40} className="text-gray-800" />
+          <span className="text-sm font-medium text-gray-600">-30초</span>
+        </button>
+        <button
+          onClick={handlePlayPause}
+          className="p-7 rounded-full text-white transition-all hover:scale-105"
+          style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', boxShadow: 'var(--shadow-voice)' }}
+          aria-label={isPlaying ? '일시정지' : '재생'}
+        >
+          {isPlaying ? <Pause size={52} fill="white" /> : <Play size={52} fill="white" />}
+        </button>
+        <button
+          onClick={() => handleSkip(30)}
+          className="flex flex-col items-center gap-1 p-4 rounded-2xl hover:bg-gray-100 transition-colors"
+          aria-label="30초 앞으로"
+        >
+          <SkipForward size={40} className="text-gray-800" />
+          <span className="text-sm font-medium text-gray-600">+30초</span>
+        </button>
+      </div>
+
+      <div className="card-senior mb-4">
+        <p className="text-senior-body text-gray-700 mb-3">재생 속도</p>
+        <div className="flex gap-2">
+          {rateOptions.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => handleRateChange(value)}
+              className="btn-secondary flex-1"
+              data-active={playbackRate === value}
+            >
+              {label} ({value}x)
+            </button>
+          ))}
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="card-senior mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Volume2 size={24} className="text-gray-600" />
+          <p className="text-senior-body text-gray-700">음량 {volume}%</p>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={volume}
+          onChange={(e) => handleVolumeChange(Number(e.target.value))}
+          className="w-full h-3 accent-green-700"
+          aria-label="음량 조절"
+        />
+      </div>
+
+      <div className="card-senior">
+        <div className="flex items-center gap-2 mb-3">
+          <Moon size={24} className="text-gray-600" />
+          <p className="text-senior-body text-gray-700">수면 타이머</p>
+          {sleepRemaining > 0 && (
+            <span className="ml-auto text-senior-button text-indigo-600">
+              {formatTime(sleepRemaining)}
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[15, 30, 45, 60].map((min) => (
+            <button
+              key={min}
+              onClick={() => setSleepTimer(sleepTimer === min ? null : min)}
+              className="btn-secondary"
+              data-active={sleepTimer === min}
+            >
+              {min}분
+            </button>
+          ))}
+        </div>
+      </div>
+    </AppShell>
   );
 }

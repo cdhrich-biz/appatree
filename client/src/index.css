@@ -52,7 +52,7 @@
   --chart-3: var(--color-green-600);
   --chart-4: var(--color-green-700);
   --chart-5: var(--color-green-800);
-  --radius: 0.65rem;
+  --radius: 1rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.08 0.01 65);
   --card: oklch(1 0 0);
@@ -76,13 +76,24 @@
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.92 0.002 0);
   --sidebar-ring: oklch(0.42 0.11 120);
-  
+
+  /* App surface tones */
+  --app-surface: #fafaf9;
+  --app-card: #ffffff;
+  --app-border: #e7e5e4;
+  --app-muted: #f5f5f4;
+
   /* Senior-friendly typography */
-  --text-senior-body: 18px;
-  --text-senior-button: 20px;
-  --text-senior-heading: 28px;
-  --text-senior-title: 32px;
-  --line-height-senior: 1.8;
+  --text-senior-body: 20px;
+  --text-senior-button: 22px;
+  --text-senior-heading: 30px;
+  --text-senior-title: 36px;
+  --line-height-senior: 1.7;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.1);
+  --shadow-voice: 0 10px 30px rgba(21, 128, 61, 0.35);
 }
 
 .dark {
@@ -120,12 +131,57 @@
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
+/* High contrast mode */
+.high-contrast {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0 0 0);
+  --border: oklch(0 0 0);
+  --muted-foreground: oklch(0.2 0 0);
+  --app-surface: #ffffff;
+  --app-border: #000000;
+}
+
+.high-contrast body {
+  color: #000;
+  background: #fff;
+}
+
+.high-contrast .text-gray-600,
+.high-contrast .text-gray-500 {
+  color: #1a1a1a !important;
+}
+
+.high-contrast .text-gray-700 {
+  color: #000 !important;
+}
+
+.high-contrast .border-gray-200,
+.high-contrast .border-gray-300 {
+  border-color: #333 !important;
+}
+
+.high-contrast .bg-gray-50,
+.high-contrast .bg-gray-100 {
+  background-color: #e5e5e5 !important;
+}
+
+.high-contrast button:focus-visible,
+.high-contrast a:focus-visible {
+  outline: 3px solid #000 !important;
+  outline-offset: 2px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    background: var(--app-surface);
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-tap-highlight-color: transparent;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -138,138 +194,193 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+  :focus-visible {
+    outline: 3px solid #16a34a;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }
 
 @layer components {
-  /* Senior-friendly typography */
+  /* Senior-friendly typography — sizes driven by CSS variables (set by PreferencesContext) */
   .text-senior-body {
-    @apply text-lg md:text-xl leading-relaxed;
-    font-size: 18px;
-    line-height: 1.8;
+    font-size: var(--text-senior-body);
+    line-height: 1.7;
   }
 
   .text-senior-button {
-    @apply text-lg md:text-xl font-medium;
-    font-size: 20px;
-    line-height: 1.6;
+    @apply font-semibold;
+    font-size: var(--text-senior-button);
+    line-height: 1.5;
   }
 
   .text-senior-heading {
-    @apply text-2xl md:text-3xl font-semibold;
-    font-size: 28px;
-    line-height: 1.4;
+    @apply font-bold;
+    font-size: var(--text-senior-heading);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
   }
 
   .text-senior-title {
-    @apply text-3xl md:text-4xl font-bold;
-    font-size: 32px;
-    line-height: 1.3;
+    @apply font-bold;
+    font-size: var(--text-senior-title);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
   }
 
-  /* Senior-friendly button sizing */
-  .btn-senior-large {
-    @apply px-6 py-4 rounded-lg;
-    min-height: 60px;
-    font-size: 20px;
+  /* App shell surface */
+  .app-surface {
+    background-color: var(--app-surface);
   }
 
-  .btn-senior-touch {
-    @apply px-4 py-3 rounded-md;
-    min-height: 48px;
-    font-size: 18px;
+  /* Primary action button — simple, senior-first */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all;
+    background-color: #15803d;
+    color: #ffffff;
+    font-size: var(--text-senior-button);
+    min-height: 64px;
+    padding: 0 1.75rem;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: #166534;
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
-  /* Voice button - circular, centered */
+  /* Secondary — quiet pill */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-all;
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 2px solid var(--app-border);
+    font-size: var(--text-senior-body);
+    min-height: 56px;
+    padding: 0 1.25rem;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: #15803d;
+    color: #15803d;
+  }
+  .btn-secondary[data-active="true"] {
+    background-color: #15803d;
+    color: #ffffff;
+    border-color: #15803d;
+  }
+
+  /* Icon-only ghost button */
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-2xl transition-colors;
+    min-width: 56px;
+    min-height: 56px;
+    color: #1f2937;
+  }
+  .btn-icon:hover:not(:disabled) {
+    background-color: var(--app-muted);
+  }
+
+  /* Senior card — large touch target with clear affordance */
+  .card-senior {
+    @apply rounded-3xl p-5 transition-all;
+    background: var(--app-card);
+    border: 2px solid var(--app-border);
+  }
+  .card-senior:hover {
+    border-color: #15803d;
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+
+  /* Tile — category/quick-action */
+  .tile-senior {
+    @apply flex flex-col items-center justify-center gap-3 rounded-3xl p-6 transition-all;
+    background: var(--app-card);
+    border: 2px solid var(--app-border);
+    min-height: 128px;
+  }
+  .tile-senior:hover {
+    background-color: #f0fdf4;
+    border-color: #15803d;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Voice button — the signature CTA */
   .voice-button {
-    @apply w-44 h-44 rounded-full flex items-center justify-center;
-    min-width: 170px;
-    min-height: 170px;
-    transition: all 0.3s ease;
+    @apply rounded-full flex items-center justify-center transition-all;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    box-shadow: var(--shadow-voice);
+    color: #ffffff;
   }
-
-  .voice-button:hover {
-    @apply shadow-lg scale-105;
+  .voice-button:hover:not(:disabled) {
+    transform: scale(1.03);
   }
-
-  .voice-button:active {
-    @apply scale-95;
+  .voice-button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .voice-button:disabled {
+    opacity: 0.85;
+    cursor: not-allowed;
   }
 
   /* Pulse animation for idle state */
   @keyframes pulse-ring {
     0% {
-      box-shadow: 0 0 0 0 rgba(27, 94, 32, 0.7);
+      box-shadow: var(--shadow-voice), 0 0 0 0 rgba(22, 163, 74, 0.55);
     }
     70% {
-      box-shadow: 0 0 0 20px rgba(27, 94, 32, 0);
+      box-shadow: var(--shadow-voice), 0 0 0 28px rgba(22, 163, 74, 0);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(27, 94, 32, 0);
+      box-shadow: var(--shadow-voice), 0 0 0 0 rgba(22, 163, 74, 0);
     }
   }
-
   .voice-button.idle {
-    animation: pulse-ring 2s infinite;
+    animation: pulse-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   /* Recording animation */
   @keyframes recording-pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
+    0%, 100% { box-shadow: var(--shadow-voice), 0 0 0 0 rgba(220, 38, 38, 0.55); }
+    50% { box-shadow: var(--shadow-voice), 0 0 0 24px rgba(220, 38, 38, 0); }
   }
-
   .voice-button.recording {
-    @apply border-4 border-red-600;
-    animation: recording-pulse 0.5s infinite;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    animation: recording-pulse 1.1s ease-in-out infinite;
   }
 
-  /* List item for accessibility */
+  /* List item shell */
   .list-item-senior {
-    @apply p-4 rounded-lg border border-gray-200 cursor-pointer transition-all;
-    min-height: 56px;
-    display: flex;
-    align-items: center;
+    @apply flex gap-4 p-4 rounded-2xl transition-all;
+    background: var(--app-card);
+    border: 2px solid var(--app-border);
+    min-height: 96px;
   }
-
   .list-item-senior:hover {
-    @apply bg-gray-50 border-gray-300 shadow-sm;
+    border-color: #15803d;
+    box-shadow: var(--shadow-card-hover);
   }
-
   .list-item-senior:focus-visible {
-    @apply outline-none ring-2 ring-green-600 ring-offset-2;
-  }
-
-  /* Card component */
-  .card-senior {
-    @apply bg-white rounded-lg border border-gray-200 p-4 shadow-sm transition-all;
-  }
-
-  .card-senior:hover {
-    @apply shadow-md border-gray-300;
+    outline: 3px solid #15803d;
+    outline-offset: 2px;
   }
 
   /**
    * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
    */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
 
@@ -280,16 +391,32 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .voice-button.idle,
+  .voice-button.recording {
+    animation: none !important;
   }
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Play, Search as SearchIcon, Heart } from 'lucide-react';
+import { Play, Search as SearchIcon, Heart, Mic } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import AppShell from '@/components/AppShell';
 
 interface YouTubeSnippet {
   title: string;
@@ -90,6 +91,23 @@ export default function SearchResults() {
     }
   };
 
+  const handleVoice = () => {
+    const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      toast.error('이 브라우저는 음성 검색을 지원하지 않습니다');
+      return;
+    }
+    const recognition = new SpeechRecognitionClass();
+    recognition.lang = 'ko-KR';
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setSubmittedQuery(transcript);
+      navigate(`/search?q=${encodeURIComponent(transcript)}`, { replace: true });
+    };
+    recognition.start();
+  };
+
   const handlePlayClick = (item: YouTubeSearchItem) => {
     navigate(`/player?id=${item.id.videoId}&title=${encodeURIComponent(item.snippet.title)}`);
   };
@@ -106,122 +124,135 @@ export default function SearchResults() {
     });
   };
 
+  const sortOptions = [
+    ['relevance', '관련성'],
+    ['date', '최신순'],
+    ['viewCount', '조회수'],
+  ] as const;
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="뒤로가기">
-          <ArrowLeft size={32} className="text-gray-700" />
+    <AppShell
+      title={submittedQuery ? `'${submittedQuery}'` : '검색'}
+      subtitle={submittedQuery ? '검색 결과' : '듣고 싶은 책을 찾아보세요'}
+      showBack
+    >
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 flex items-center bg-white rounded-2xl border-2 border-[color:var(--app-border)] px-4 focus-within:border-green-600">
+          <SearchIcon size={24} className="text-gray-500 mr-2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="검색어 입력"
+            className="flex-1 text-senior-body py-3 bg-transparent outline-none"
+            aria-label="검색어 입력"
+          />
+        </div>
+        <button onClick={handleVoice} className="btn-icon" aria-label="음성 검색">
+          <Mic size={28} />
         </button>
-        <div className="flex-1">
-          <h1 className="text-senior-heading text-gray-800">'{submittedQuery}' 검색 결과</h1>
-        </div>
-      </header>
+        <button
+          onClick={handleSearch}
+          className="btn-primary px-4"
+          style={{ minHeight: 56 }}
+          aria-label="검색"
+        >
+          <SearchIcon size={26} />
+        </button>
+      </div>
 
-      <div className="bg-gray-50 border-b border-gray-200 px-4 py-4">
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1 flex items-center bg-white border-2 border-gray-300 rounded-lg px-4 py-3">
-            <SearchIcon size={24} className="text-gray-600 mr-2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="검색어 입력"
-              className="flex-1 text-senior-body outline-none"
-            />
-          </div>
-          <button onClick={handleSearch} className="p-3 bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors" aria-label="검색">
-            <SearchIcon size={24} />
-          </button>
-        </div>
-
-        {/* Sort Options */}
-        <div className="flex gap-2 overflow-x-auto">
-          {([['relevance', '관련성'], ['date', '최신순'], ['viewCount', '조회수']] as const).map(([value, label]) => (
+      {submittedQuery && (
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+          {sortOptions.map(([value, label]) => (
             <button
               key={value}
               onClick={() => setSortBy(value)}
-              className={`btn-senior-touch whitespace-nowrap ${sortBy === value ? 'bg-green-700 text-white' : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-green-600'}`}
+              className="btn-secondary whitespace-nowrap"
+              data-active={sortBy === value}
             >
               {label}
             </button>
           ))}
         </div>
-      </div>
+      )}
 
-      <main className="flex-1 px-4 py-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-senior-body text-gray-600">검색 중입니다...</div>
-          </div>
-        ) : items.length > 0 ? (
-          <div className="space-y-4">
-            {items.map((item) => {
-              const detail = detailsMap.get(item.id.videoId);
-              const duration = detail ? parseDuration(detail.contentDetails.duration) : '';
-              const views = detail ? formatViews(detail.statistics.viewCount) : '';
+      {isLoading ? (
+        <div className="text-center py-16 text-senior-body text-gray-500">검색 중입니다...</div>
+      ) : items.length > 0 ? (
+        <div className="space-y-3">
+          {items.map((item) => {
+            const detail = detailsMap.get(item.id.videoId);
+            const duration = detail ? parseDuration(detail.contentDetails.duration) : '';
+            const views = detail ? formatViews(detail.statistics.viewCount) : '';
+            const bookmarked = bookmarkedIds.has(item.id.videoId);
 
-              return (
-                <div
-                  key={item.id.videoId}
-                  className="list-item-senior bg-white border-2 border-gray-200 hover:border-green-600 rounded-lg p-4 cursor-pointer transition-all"
-                  onClick={() => handlePlayClick(item)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePlayClick(item); }}
-                >
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0 relative">
-                      <img
-                        src={item.snippet.thumbnails.medium?.url ?? ''}
-                        alt={item.snippet.title}
-                        className="w-28 h-20 rounded-lg object-cover"
-                      />
-                      {duration && (
-                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
-                          {duration}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-senior-button text-gray-800 mb-1 line-clamp-2">{item.snippet.title}</h3>
-                        <p className="text-senior-body text-gray-600">{item.snippet.channelTitle}</p>
-                      </div>
-                      {views && (
-                        <span className="text-senior-body text-gray-500">조회수 {views}</span>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 flex flex-col gap-2 items-center">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handlePlayClick(item); }}
-                        className="p-3 bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors"
-                        aria-label={`${item.snippet.title} 재생`}
-                      >
-                        <Play size={28} fill="white" />
-                      </button>
-                      <button
-                        onClick={(e) => handleBookmark(item, e)}
-                        className="p-2 hover:bg-red-50 rounded-full transition-colors"
-                        aria-label="즐겨찾기"
-                      >
-                        <Heart size={24} className={bookmarkedIds.has(item.id.videoId) ? "text-red-500 fill-red-500" : "text-gray-400 hover:text-red-500"} />
-                      </button>
-                    </div>
-                  </div>
+            return (
+              <article
+                key={item.id.videoId}
+                className="list-item-senior cursor-pointer"
+                onClick={() => handlePlayClick(item)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePlayClick(item); }}
+                aria-label={`${item.snippet.title} 재생`}
+              >
+                <div className="flex-shrink-0 relative">
+                  <img
+                    src={item.snippet.thumbnails.medium?.url ?? ''}
+                    alt=""
+                    className="w-28 h-28 rounded-2xl object-cover"
+                  />
+                  {duration && (
+                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded-md">
+                      {duration}
+                    </span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        ) : submittedQuery ? (
-          <div className="flex flex-col items-center justify-center h-32">
-            <p className="text-senior-body text-gray-600 mb-4">검색 결과가 없습니다.</p>
-            <button onClick={() => navigate('/chat')} className="btn-senior-large bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors">
-              AI 추천 받기
-            </button>
-          </div>
-        ) : null}
-      </main>
-    </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                  <div>
+                    <h3 className="text-senior-button line-clamp-2 mb-1">{item.snippet.title}</h3>
+                    <p className="text-senior-body text-gray-600 truncate">{item.snippet.channelTitle}</p>
+                  </div>
+                  {views && <span className="text-sm text-gray-500">조회수 {views}</span>}
+                </div>
+                <div className="flex-shrink-0 flex flex-col gap-2 justify-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePlayClick(item); }}
+                    className="p-3 bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors"
+                    aria-label="재생"
+                  >
+                    <Play size={24} fill="white" />
+                  </button>
+                  <button
+                    onClick={(e) => handleBookmark(item, e)}
+                    className="p-2 rounded-full transition-colors hover:bg-red-50"
+                    aria-label={bookmarked ? '즐겨찾기 완료' : '즐겨찾기 추가'}
+                    aria-pressed={bookmarked}
+                  >
+                    <Heart
+                      size={24}
+                      className={bookmarked ? 'text-red-500 fill-red-500' : 'text-gray-400'}
+                    />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : submittedQuery ? (
+        <div className="text-center py-16">
+          <p className="text-senior-heading text-gray-700 mb-2">결과가 없습니다</p>
+          <p className="text-senior-body text-gray-500 mb-6">AI 도우미가 추천해 드릴게요</p>
+          <button onClick={() => navigate('/chat')} className="btn-primary">
+            AI에게 물어보기
+          </button>
+        </div>
+      ) : (
+        <div className="text-center py-16 text-senior-body text-gray-500">
+          위에서 검색어를 입력하거나 마이크를 눌러 말씀해주세요
+        </div>
+      )}
+    </AppShell>
   );
 }

@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Mic, Volume2 } from 'lucide-react';
+import { Send, Mic, Volume2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import AppShell from '@/components/AppShell';
 
 interface Message {
   id: string;
@@ -35,6 +37,7 @@ function stripRecommendTags(text: string): string {
 
 export default function AIChat() {
   const [, navigate] = useLocation();
+  const { speak } = usePreferences();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +49,6 @@ export default function AIChat() {
   const greetingQuery = trpc.chat.greeting.useQuery(undefined, { retry: false });
   const sendMutation = trpc.chat.send.useMutation();
 
-  // Initialize Web Speech API
   useEffect(() => {
     const SpeechRecognitionClass = window.webkitSpeechRecognition || window.SpeechRecognition;
     if (SpeechRecognitionClass) {
@@ -60,7 +62,6 @@ export default function AIChat() {
     }
   }, []);
 
-  // Set initial greeting
   useEffect(() => {
     const greeting = greetingQuery.data ?? '안녕하세요! 저는 당신의 오디오북 추천 도우미입니다. 어떤 책을 찾고 계신가요?';
     setMessages([{ id: '0', role: 'assistant', content: greeting, timestamp: new Date() }]);
@@ -69,16 +70,6 @@ export default function AIChat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const speakMessage = (message: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(message);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   const handleVoiceInput = () => {
     if (!recognitionRef.current) return;
@@ -112,7 +103,7 @@ export default function AIChat() {
       setSessionId(result.sessionId);
       const assistantMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: result.message, timestamp: new Date() };
       setMessages((prev) => [...prev, assistantMsg]);
-      speakMessage(stripRecommendTags(result.message).slice(0, 200));
+      speak(stripRecommendTags(result.message).slice(0, 200));
     } catch {
       const errorMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: '죄송합니다, 오류가 발생했습니다. 다시 시도해주세요.', timestamp: new Date() };
       setMessages((prev) => [...prev, errorMsg]);
@@ -128,88 +119,97 @@ export default function AIChat() {
     '편안한 마음으로 들을 수 있는 책은?',
   ];
 
-  return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="뒤로가기">
-          <ArrowLeft size={32} className="text-gray-700" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-senior-heading text-gray-800">AI 채팅</h1>
-          <p className="text-senior-body text-gray-600">오디오북 추천 상담</p>
-        </div>
-      </header>
+  const showPresets = messages.length <= 1;
 
-      {/* Messages */}
-      <main className="flex-1 px-4 py-6 overflow-y-auto">
-        {messages.length <= 1 && (
-          <div className="mb-6">
-            <p className="text-senior-body text-gray-600 mb-4">추천 질문:</p>
-            <div className="grid grid-cols-1 gap-2">
-              {presetMessages.map((msg) => (
-                <button key={msg} onClick={() => { setInputValue(msg); }} className="text-left p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-600 rounded-lg text-senior-body text-gray-700 transition-all">
-                  {msg}
-                </button>
-              ))}
+  return (
+    <AppShell title="AI 대화" subtitle="오디오북 추천 상담" showBack>
+      {showPresets && (
+        <div className="mb-5">
+          <p className="text-senior-body text-gray-600 mb-3">이렇게 물어볼 수 있어요</p>
+          <div className="space-y-2">
+            {presetMessages.map((msg) => (
+              <button
+                key={msg}
+                onClick={() => setInputValue(msg)}
+                className="w-full text-left card-senior text-senior-body"
+              >
+                {msg}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4" role="log" aria-live="polite" aria-label="대화 내용">
+        {messages.map((msg) => {
+          const recommendations = msg.role === 'assistant' ? parseRecommendations(msg.content) : [];
+          const cleanContent = msg.role === 'assistant' ? stripRecommendTags(msg.content) : msg.content;
+          const isUser = msg.role === 'user';
+
+          return (
+            <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] rounded-3xl px-5 py-4 ${
+                  isUser
+                    ? 'bg-green-700 text-white rounded-br-md'
+                    : 'bg-white border-2 border-[color:var(--app-border)] text-gray-800 rounded-bl-md'
+                }`}
+              >
+                <p className="text-senior-body whitespace-pre-wrap">{cleanContent}</p>
+                {recommendations.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {recommendations.map((rec, i) => (
+                      <button
+                        key={i}
+                        onClick={() => navigate(`/search?q=${encodeURIComponent(rec.searchQuery)}`)}
+                        className="w-full text-left p-3 bg-white rounded-2xl border-2 border-gray-100 hover:border-green-600 transition-colors"
+                      >
+                        <p className="font-bold text-gray-900 mb-0.5">📖 {rec.title}</p>
+                        <p className="text-sm text-gray-600">{rec.author}</p>
+                        <p className="text-sm text-gray-500 mt-1">{rec.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!isUser && (
+                  <button
+                    onClick={() => speak(cleanContent)}
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 transition-colors"
+                    aria-label="메시지 읽어주기"
+                  >
+                    <Volume2 size={18} />
+                    <span>읽어주기</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white border-2 border-[color:var(--app-border)] rounded-3xl px-5 py-4">
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div className="space-y-4">
-          {messages.map((msg) => {
-            const recommendations = msg.role === 'assistant' ? parseRecommendations(msg.content) : [];
-            const cleanContent = msg.role === 'assistant' ? stripRecommendTags(msg.content) : msg.content;
-
-            return (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-lg p-4 ${msg.role === 'user' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-800'}`}>
-                  <p className="text-senior-body whitespace-pre-wrap">{cleanContent}</p>
-                  {recommendations.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {recommendations.map((rec, i) => (
-                        <button
-                          key={i}
-                          onClick={() => navigate(`/search?q=${encodeURIComponent(rec.searchQuery)}`)}
-                          className="w-full text-left p-3 bg-white rounded-lg border border-gray-200 hover:border-green-600 transition-colors"
-                        >
-                          <p className="font-bold text-gray-800">📖 {rec.title}</p>
-                          <p className="text-sm text-gray-600">{rec.author}</p>
-                          <p className="text-sm text-gray-500 mt-1">{rec.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {msg.role === 'assistant' && (
-                    <button onClick={() => speakMessage(cleanContent)} className="mt-2 p-1 hover:bg-gray-200 rounded" aria-label="읽어주기">
-                      <Volume2 size={20} className="text-gray-500" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-lg p-4">
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </main>
-
-      {/* Input */}
-      <div className="bg-white border-t border-gray-200 px-4 py-4">
-        <div className="flex gap-2">
+      <div className="fixed bottom-[84px] left-0 right-0 z-10 app-surface border-t-2 border-[color:var(--app-border)]">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex gap-2">
           <button
             onClick={handleVoiceInput}
-            className={`p-3 rounded-lg transition-colors ${isRecording ? 'bg-red-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-            aria-label="음성 입력"
+            className={`btn-icon ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}`}
+            aria-label={isRecording ? '녹음 중지' : '음성 입력'}
+            aria-pressed={isRecording}
           >
             <Mic size={28} />
           </button>
@@ -218,19 +218,20 @@ export default function AIChat() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="메시지를 입력하세요..."
-            className="flex-1 text-senior-body border-2 border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-green-600"
+            placeholder="메시지를 입력하세요"
+            className="flex-1 text-senior-body bg-white border-2 border-[color:var(--app-border)] rounded-2xl px-4 py-3 outline-none focus:border-green-600"
+            aria-label="메시지 입력"
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isLoading}
-            className="p-3 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="btn-icon bg-green-700 text-white hover:bg-green-800 disabled:opacity-50"
             aria-label="전송"
           >
             <Send size={28} />
           </button>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
