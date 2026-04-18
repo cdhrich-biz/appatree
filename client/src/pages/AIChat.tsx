@@ -140,7 +140,7 @@ export default function AIChat() {
         </div>
       )}
 
-      <div className="space-y-4" role="log" aria-live="polite" aria-label="대화 내용">
+      <div className="space-y-4 pb-24" role="log" aria-live="polite" aria-label="대화 내용">
         {messages.map((msg) => {
           const recommendations = msg.role === 'assistant' ? parseRecommendations(msg.content) : [];
           const cleanContent = msg.role === 'assistant' ? stripRecommendTags(msg.content) : msg.content;
@@ -203,7 +203,10 @@ export default function AIChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-[84px] left-0 right-0 z-10 app-surface border-t-2 border-[color:var(--app-border)]">
+      <div
+        className="fixed left-0 right-0 z-10 app-surface border-t-2 border-[color:var(--app-border)] safe-px"
+        style={{ bottom: 'calc(var(--bottom-nav-height) + var(--safe-bottom))' }}
+      >
         <div className="max-w-2xl mx-auto px-4 py-3 flex gap-2">
           <button
             onClick={handleVoiceInput}

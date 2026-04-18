@@ -122,7 +122,7 @@ export default function Home() {
           aria-label="음성 검색 시작"
           aria-pressed={voiceState === 'recording'}
         >
-          <Mic size={80} strokeWidth={2.2} />
+          <Mic className="w-[40%] h-[40%]" strokeWidth={2.2} aria-hidden />
         </button>
         <p
           className="text-senior-heading mt-8 max-w-sm"
@@ -146,7 +146,7 @@ export default function Home() {
       {recentHistory.length > 0 && (
         <section className="mt-10" aria-labelledby="continue-heading">
           <h2 id="continue-heading" className="text-senior-heading mb-4">이어 듣기</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
+          <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 snap-x snap-mandatory">
             {recentHistory.map((item) => {
               const pct = item.totalSeconds > 0
                 ? Math.round((item.progressSeconds / item.totalSeconds) * 100)

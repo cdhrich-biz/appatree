@@ -28,11 +28,15 @@ export default function AppShell({
     else window.history.length > 1 ? window.history.back() : navigate('/');
   };
 
+  const mainPadBottom = hideBottomNav
+    ? 'pb-[calc(1.5rem+var(--safe-bottom))]'
+    : 'pb-[calc(var(--bottom-nav-height)+var(--safe-bottom)+1rem)]';
+
   return (
-    <div className="app-surface min-h-screen flex flex-col">
+    <div className="app-surface min-h-[100dvh] flex flex-col">
       {(title || showBack || headerRight) && (
-        <header className="sticky top-0 z-20 app-surface border-b border-[color:var(--app-border)]">
-          <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+        <header className="sticky top-0 z-20 app-surface border-b border-[color:var(--app-border)] safe-pt">
+          <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3 safe-px">
             {showBack ? (
               <button
                 onClick={handleBack}
@@ -59,7 +63,7 @@ export default function AppShell({
         </header>
       )}
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pt-6 pb-28">
+      <main className={`flex-1 w-full max-w-2xl mx-auto px-4 pt-6 safe-px ${mainPadBottom}`}>
         {children}
       </main>
 
@@ -83,8 +87,9 @@ function BottomNav({ current, onNavigate }: { current: string; onNavigate: (path
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-20 app-surface border-t-2 border-[color:var(--app-border)]"
+      className="fixed bottom-0 left-0 right-0 z-20 app-surface border-t-2 border-[color:var(--app-border)] safe-pb safe-px"
       aria-label="주요 탐색"
+      style={{ minHeight: 'calc(var(--bottom-nav-height) + var(--safe-bottom))' }}
     >
       <div className="max-w-2xl mx-auto grid grid-cols-4">
         {items.map(({ path, label, icon: Icon, aria }) => {
@@ -95,18 +100,18 @@ function BottomNav({ current, onNavigate }: { current: string; onNavigate: (path
               onClick={() => onNavigate(path)}
               aria-label={aria}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center gap-1 py-3 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 py-2.5 min-h-[60px] transition-colors ${
                 active ? 'text-green-700' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <span
-                className={`flex items-center justify-center rounded-2xl px-4 py-1.5 transition-all ${
+                className={`flex items-center justify-center rounded-2xl px-3 py-1 transition-all ${
                   active ? 'bg-green-100' : ''
                 }`}
               >
-                <Icon size={28} strokeWidth={active ? 2.4 : 2} />
+                <Icon size={26} strokeWidth={active ? 2.4 : 2} />
               </span>
-              <span className={`text-sm ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+              <span className={`text-xs sm:text-sm ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
             </button>
           );
         })}
