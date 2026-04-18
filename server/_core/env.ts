@@ -7,5 +7,6 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  llmModel: process.env.LLM_MODEL ?? "gpt-4o-mini",
   youtubeApiKey: process.env.YOUTUBE_API_KEY ?? "",
 };

@@ -216,7 +216,9 @@ const resolveApiUrl = () =>
 
 const assertApiKey = () => {
   if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+    throw new Error(
+      "LLM API key not configured. Set BUILT_IN_FORGE_API_KEY (OpenAI sk-... or Forge key) in environment."
+    );
   }
 };
 
@@ -273,6 +275,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     tools,
     toolChoice,
     tool_choice,
+    maxTokens,
+    max_tokens,
     outputSchema,
     output_schema,
     responseFormat,
@@ -280,8 +284,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: ENV.llmModel,
     messages: messages.map(normalizeMessage),
+    max_tokens: maxTokens ?? max_tokens ?? 2048,
   };
 
   if (tools && tools.length > 0) {
@@ -294,11 +299,6 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   );
   if (normalizedToolChoice) {
     payload.tool_choice = normalizedToolChoice;
-  }
-
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
