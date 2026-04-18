@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import AppShell from '@/components/AppShell';
 import QuickTools from '@/components/QuickTools';
-import Onboarding from '@/components/Onboarding';
 
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'error';
 
@@ -108,7 +107,6 @@ export default function Home() {
 
   return (
     <AppShell title="아빠트리" subtitle="시니어 오디오북">
-      <Onboarding />
       {announcements.length > 0 && (
         <div className="mb-6 space-y-2" role="region" aria-label="공지사항">
           {announcements.map((a) => (
