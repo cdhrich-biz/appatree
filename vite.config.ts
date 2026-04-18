@@ -167,6 +167,22 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react-dom") || id.includes("react/")) return "react-vendor";
+          if (id.includes("@radix-ui")) return "radix-vendor";
+          if (id.includes("@tanstack") || id.includes("@trpc")) return "data-vendor";
+          if (id.includes("lucide-react")) return "icons";
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          if (id.includes("framer-motion") || id.includes("embla-carousel")) return "motion";
+          if (id.includes("sonner") || id.includes("cmdk") || id.includes("vaul") || id.includes("input-otp")) return "ui-extras";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     host: true,
