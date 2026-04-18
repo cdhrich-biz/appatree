@@ -9,11 +9,24 @@ import { getLoginUrl } from "./const";
 
 import "./index.css";
 
-// Initialize Service Worker for PWA
+// ----------------------------------------------------------------------------
+// Service Worker: 현재 비활성화.
+// - 기존 구 SW가 스테일 index.html / 구 CSP를 캐시해 프로덕션 크래시 유발
+// - /sw.js 는 kill-switch (자신 + 모든 캐시 삭제, SW_KILL_RELOAD 메시지 송신)
+// - 기존 사용자는 브라우저 자동 업데이트로 새 sw.js 받아 정리됨
+// - 여기서는 새 등록을 하지 않고, kill 메시지만 받아 자동 리로드 처리
+// ----------------------------------------------------------------------------
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .register('/sw.js', { scope: '/' })
-    .catch((error) => console.warn('Service Worker registration failed:', error));
+  // 과거 등록된 SW가 살아있으면 리로드 신호 수신 후 갱신
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'SW_KILL_RELOAD') {
+      window.location.reload();
+    }
+  });
+  // 혹시 남아있는 기존 등록 전부 언레지스터 (방어적 정리)
+  navigator.serviceWorker.getRegistrations()
+    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+    .catch(() => { /* ignore */ });
 }
 
 const queryClient = new QueryClient();

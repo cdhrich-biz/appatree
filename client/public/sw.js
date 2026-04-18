@@ -1,114 +1,43 @@
-const CACHE_NAME = 'appatree-v4';
-const OFFLINE_URL = '/offline.html';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  OFFLINE_URL,
-];
+// ============================================================================
+// Service Worker - KILL SWITCH
+// ----------------------------------------------------------------------------
+// 이전 버전 SW가 구 CSP/구 index.html을 캐시해 프로덕션에서 MIME·CSP 크래시
+// 유발. 안전하게 모든 SW를 언레지스터하고 모든 캐시를 삭제한 뒤 스스로를
+// 제거한다. main.tsx 에서 SW 등록은 이미 해제된 상태.
+// 나중에 PWA 캐싱이 필요해지면 완전히 새 경로(/sw-v2.js 등)로 재도입 권장.
+// ============================================================================
 
-// Install event - cache assets
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('Cache addAll error:', err);
-        // Continue even if some assets fail to cache
-        return Promise.resolve();
-      });
-    })
-  );
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
+    (async () => {
+      // 1) 모든 캐시 삭제
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+      // 2) 모든 클라이언트 제어권 가져오기
+      await self.clients.claim();
 
-  // Skip API requests and non-http(s) schemes
-  if (event.request.url.includes('/api/') || !event.request.url.startsWith('http')) {
-    return;
-  }
+      // 3) 모든 클라이언트에 리로드 요청
+      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+      clients.forEach((client) => {
+        try { client.postMessage({ type: 'SW_KILL_RELOAD' }); } catch { /* ignore */ }
+      });
 
-  // 크로스 오리진(폰트, YouTube 등) 요청은 SW 개입하지 않음 → CSP connect-src 위반 방지
-  try {
-    const reqUrl = new URL(event.request.url);
-    if (reqUrl.origin !== self.location.origin) {
-      return;
-    }
-  } catch {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached response if available
-      if (response) {
-        return response;
+      // 4) 스스로 언레지스터
+      try {
+        await self.registration.unregister();
+      } catch {
+        /* ignore */
       }
-
-      // Otherwise, fetch from network
-      return fetch(event.request)
-        .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          // Cache successful responses
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
-          return response;
-        })
-        .catch(async () => {
-          // 네비게이션 요청이면 오프라인 페이지 제공
-          if (event.request.mode === 'navigate') {
-            const offline = await caches.match(OFFLINE_URL);
-            if (offline) return offline;
-          }
-          return caches.match('/index.html');
-        });
-    })
+    })(),
   );
 });
 
-// Background sync for offline actions (future enhancement)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-bookmarks') {
-    event.waitUntil(
-      // Sync bookmarks when connection is restored
-      Promise.resolve()
-    );
-  }
-});
-
-// Handle messages from clients
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+// 요청은 전부 네트워크로 바이패스 (SW 개입 없음)
+self.addEventListener('fetch', () => {
+  // intentionally no-op: 브라우저가 네이티브로 처리
 });
