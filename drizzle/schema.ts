@@ -6,6 +6,27 @@ export const textSizeEnum = pgEnum("text_size", ["small", "medium", "large"]);
 export const searchSourceEnum = pgEnum("search_source", ["voice", "text", "category"]);
 export const chatRoleEnum = pgEnum("chat_role", ["user", "assistant", "system"]);
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "urgent"]);
+export const relationStatusEnum = pgEnum("relation_status", ["pending", "verified", "revoked"]);
+export const remoteSessionStatusEnum = pgEnum("remote_session_status", [
+  "requested",
+  "active",
+  "ended",
+  "rejected",
+  "expired",
+]);
+export const remoteActionTypeEnum = pgEnum("remote_action_type", [
+  "navigate",
+  "play",
+  "pause",
+  "seek",
+  "search",
+  "bookmark_add",
+  "bookmark_remove",
+  "pref_update",
+  "highlight",
+  "speak",
+  "other",
+]);
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 export const users = pgTable("users", {
@@ -188,3 +209,80 @@ export const announcements = pgTable("announcements", {
 
 export type Announcement = typeof announcements.$inferSelect;
 export type InsertAnnouncement = typeof announcements.$inferInsert;
+
+// ─── Family Relations ────────────────────────────────────────────────────────
+// 부모(피지원)-자녀(지원) 한 쌍. 단방향 1행으로 저장.
+export const familyRelations = pgTable("family_relations", {
+  id: serial("id").primaryKey(),
+  parentUserId: integer("parent_user_id").notNull(),
+  childUserId: integer("child_user_id").notNull(),
+  status: relationStatusEnum("status").default("pending").notNull(),
+  nickname: varchar("nickname", { length: 50 }),
+  verifiedAt: timestamp("verified_at"),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("family_relations_pair_idx").on(table.parentUserId, table.childUserId),
+  index("family_relations_parent_idx").on(table.parentUserId),
+  index("family_relations_child_idx").on(table.childUserId),
+]);
+
+export type FamilyRelation = typeof familyRelations.$inferSelect;
+export type InsertFamilyRelation = typeof familyRelations.$inferInsert;
+
+// ─── Invite Codes ────────────────────────────────────────────────────────────
+// 6자리 숫자, 10분 만료, 1회용. 부모(피지원)가 발행.
+export const inviteCodes = pgTable("invite_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 6 }).notNull().unique(),
+  parentUserId: integer("parent_user_id").notNull(),
+  consumedBy: integer("consumed_by"),
+  consumedAt: timestamp("consumed_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("invite_codes_parent_idx").on(table.parentUserId),
+  index("invite_codes_expires_idx").on(table.expiresAt),
+]);
+
+export type InviteCode = typeof inviteCodes.$inferSelect;
+export type InsertInviteCode = typeof inviteCodes.$inferInsert;
+
+// ─── Remote Sessions ─────────────────────────────────────────────────────────
+// 자녀가 요청, 부모가 수락. sessionKey는 Ably 채널명 및 프론트 라우트 파라미터로 사용.
+export const remoteSessions = pgTable("remote_sessions", {
+  id: serial("id").primaryKey(),
+  sessionKey: varchar("session_key", { length: 32 }).notNull().unique(),
+  parentUserId: integer("parent_user_id").notNull(),
+  childUserId: integer("child_user_id").notNull(),
+  status: remoteSessionStatusEnum("status").default("requested").notNull(),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  endedAt: timestamp("ended_at"),
+  endedBy: integer("ended_by"),
+  endReason: varchar("end_reason", { length: 50 }),
+}, (table) => [
+  index("remote_sessions_parent_idx").on(table.parentUserId),
+  index("remote_sessions_child_idx").on(table.childUserId),
+  index("remote_sessions_status_idx").on(table.status),
+]);
+
+export type RemoteSession = typeof remoteSessions.$inferSelect;
+export type InsertRemoteSession = typeof remoteSessions.$inferInsert;
+
+// ─── Remote Actions (Audit Log) ──────────────────────────────────────────────
+// 세션 중 실행된 원격 명령 로그. 부모가 사후 확인 가능.
+export const remoteActions = pgTable("remote_actions", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull(),
+  actorUserId: integer("actor_user_id").notNull(),
+  actionType: remoteActionTypeEnum("action_type").notNull(),
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("remote_actions_session_idx").on(table.sessionId),
+  index("remote_actions_created_idx").on(table.createdAt),
+]);
+
+export type RemoteAction = typeof remoteActions.$inferSelect;
+export type InsertRemoteAction = typeof remoteActions.$inferInsert;

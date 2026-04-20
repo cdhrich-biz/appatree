@@ -451,3 +451,19 @@
     animation: none !important;
   }
 }
+
+/* Observer 모드 (iframe 미러용): 읽기 전용, 포인터 이벤트 차단, 내비 숨김 */
+html.remote-observer,
+html.remote-observer body {
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+html.remote-observer nav,
+html.remote-observer header button[aria-label='설정'],
+html.remote-observer header button[aria-label='뒤로가기'] {
+  visibility: hidden;
+}
+html.remote-observer * {
+  caret-color: transparent;
+}

@@ -1,4 +1,4 @@
-import { Film, Flashlight, Camera, Search } from 'lucide-react';
+import { Film, Flashlight, Camera, Search, HelpingHand } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { useCameraTorch } from '@/hooks/useCameraTorch';
@@ -17,6 +17,30 @@ export default function QuickTools() {
   return (
     <section className="mb-8" aria-labelledby="quicktools-heading">
       <h2 id="quicktools-heading" className="text-senior-heading mb-3">빠른 도구</h2>
+
+      <button
+        onClick={() => navigate('/help')}
+        className="w-full flex items-center gap-4 rounded-3xl p-5 mb-3 border-2 border-[color:var(--app-border)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        style={{
+          background: 'linear-gradient(135deg,#fef3c7 0%,#fde68a 100%)',
+          minHeight: 120,
+        }}
+        aria-label="자녀에게 도움 요청하기"
+      >
+        <span
+          className="flex items-center justify-center w-20 h-20 rounded-2xl flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg,#d97706,#b45309)', color: '#fff' }}
+          aria-hidden
+        >
+          <HelpingHand size={40} strokeWidth={2.2} />
+        </span>
+        <div className="flex-1 text-left">
+          <p className="text-senior-button text-amber-900">도움 요청</p>
+          <p className="text-senior-body text-amber-900/80 mt-1">
+            자녀에게 원격으로 도움 받기
+          </p>
+        </div>
+      </button>
 
       <button
         onClick={() => navigate('/video')}

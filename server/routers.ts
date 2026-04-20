@@ -10,6 +10,7 @@ import { chatRouter } from "./chatRouter";
 import { preferencesRouter } from "./preferencesRouter";
 import { configRouter } from "./configRouter";
 import { adminRouter } from "./adminRouter";
+import { remoteRouter } from "./remoteRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -47,6 +48,7 @@ export const appRouter = router({
   preferences: preferencesRouter,
   config: configRouter,
   admin: adminRouter,
+  remote: remoteRouter,
 });
 
 export type AppRouter = typeof appRouter;

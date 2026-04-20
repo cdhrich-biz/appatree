@@ -3,6 +3,7 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon, ChevronLeft, 
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useRemoteSession } from '@/contexts/RemoteSessionContext';
 import AppShell from '@/components/AppShell';
 import { playbackQueue, type QueueItem } from '@/lib/playbackQueue';
 import { usePlayerVoice, type PlayerVoiceCommand } from '@/hooks/usePlayerVoice';
@@ -76,6 +77,11 @@ export default function Player() {
   const addHistoryMutation = trpc.library.addHistory.useMutation();
   const updateProgressMutation = trpc.library.updateProgress.useMutation();
   const bookmarkMutation = trpc.library.addBookmark.useMutation();
+  const logActionMutation = trpc.remote.logAction.useMutation();
+
+  const { activeSession, subscribe, publish } = useRemoteSession();
+  const isRemoteParent = activeSession?.role === 'parent';
+  const remoteSessionKey = activeSession?.sessionKey ?? '';
 
   const videoQuery = trpc.youtube.video.useQuery(
     { videoId: currentVideoId },
@@ -187,6 +193,94 @@ export default function Player() {
     return () => clearInterval(saveInterval.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideoId, isPlaying]);
+
+  // 부모 역할일 때 자녀로부터 오는 재생 제어 action 처리
+  useEffect(() => {
+    if (!isRemoteParent) return;
+    return subscribe((event) => {
+      if (!event.type.startsWith('action:')) return;
+      switch (event.type) {
+        case 'action:play': {
+          if (event.videoId && event.videoId !== currentVideoId) {
+            playerRef.current?.loadVideoById(event.videoId);
+            setCurrentVideoId(event.videoId);
+            if (event.title) setVideoTitle(event.title);
+            if (event.startAt != null) {
+              setTimeout(() => playerRef.current?.seekTo(event.startAt ?? 0, true), 500);
+            }
+            window.history.replaceState(
+              null,
+              '',
+              `/player?id=${event.videoId}&title=${encodeURIComponent(event.title ?? '')}`,
+            );
+          }
+          playerRef.current?.playVideo();
+          toast.info('자녀가 재생을 도와드려요', { id: 'remote-play' });
+          if (remoteSessionKey) {
+            logActionMutation.mutate({
+              sessionKey: remoteSessionKey,
+              actionType: 'play',
+              payload: { videoId: event.videoId, title: event.title, startAt: event.startAt },
+            });
+          }
+          break;
+        }
+        case 'action:pause': {
+          playerRef.current?.pauseVideo();
+          toast.info('자녀가 일시정지를 도와드려요', { id: 'remote-pause' });
+          if (remoteSessionKey) {
+            logActionMutation.mutate({ sessionKey: remoteSessionKey, actionType: 'pause' });
+          }
+          break;
+        }
+        case 'action:resume': {
+          playerRef.current?.playVideo();
+          if (remoteSessionKey) {
+            logActionMutation.mutate({ sessionKey: remoteSessionKey, actionType: 'play' });
+          }
+          break;
+        }
+        case 'action:seek': {
+          playerRef.current?.seekTo(event.seconds, true);
+          setCurrentTime(event.seconds);
+          toast.info('자녀가 재생 위치를 바꿔드려요', { id: 'remote-seek' });
+          if (remoteSessionKey) {
+            logActionMutation.mutate({
+              sessionKey: remoteSessionKey,
+              actionType: 'seek',
+              payload: { seconds: event.seconds },
+            });
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    });
+  }, [isRemoteParent, subscribe, currentVideoId, remoteSessionKey, logActionMutation]);
+
+  // 부모 역할일 때 재생 상태를 주기적으로 자녀에게 브로드캐스트
+  useEffect(() => {
+    if (!isRemoteParent) return;
+    const interval = setInterval(() => {
+      if (!playerRef.current) return;
+      void publish({
+        type: 'state:sync',
+        route: '/player',
+        queryString: window.location.search,
+        player: {
+          videoId: currentVideoId || null,
+          title: videoTitle || null,
+          isPlaying,
+          currentTime: playerRef.current.getCurrentTime(),
+          duration: playerRef.current.getDuration(),
+        },
+        scroll: { x: 0, y: 0 },
+        timestamp: Date.now(),
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isRemoteParent, isPlaying, currentVideoId, videoTitle, publish]);
 
   useEffect(() => {
     if (sleepTimer === null) {

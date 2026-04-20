@@ -9,4 +9,7 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   llmModel: process.env.LLM_MODEL ?? "gpt-4o-mini",
   youtubeApiKey: process.env.YOUTUBE_API_KEY ?? "",
+  ablyApiKey: process.env.ABLY_API_KEY ?? "",
+  meteredTurnKey: process.env.METERED_TURN_KEY ?? "",
+  meteredTurnDomain: process.env.METERED_TURN_DOMAIN ?? "",
 };

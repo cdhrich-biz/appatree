@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Type, Trash2, Eye, Gauge, Play } from 'lucide-react';
+import { Volume2, Type, Trash2, Eye, Gauge, Play, HelpingHand, Users, LinkIcon } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
@@ -144,6 +144,48 @@ export default function Settings() {
           />
           <span className="text-senior-body">시각 접근성 향상</span>
         </label>
+      </section>
+
+      <section className="card-senior mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Users size={28} className="text-green-700" />
+          <h2 className="text-senior-heading">가족 관리</h2>
+        </div>
+        <div className="space-y-2">
+          <button
+            onClick={() => navigate('/help')}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-amber-200 hover:bg-amber-50 transition-colors text-left"
+            aria-label="자녀에게 도움 요청하기"
+          >
+            <HelpingHand size={24} className="text-amber-600" />
+            <div className="flex-1">
+              <p className="text-senior-body text-amber-900 font-semibold">자녀에게 도움 요청</p>
+              <p className="text-sm text-gray-600">초대 번호를 만들어 자녀와 연결</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/family/accept')}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-green-200 hover:bg-green-50 transition-colors text-left"
+            aria-label="부모님 초대 번호로 연결"
+          >
+            <LinkIcon size={24} className="text-green-700" />
+            <div className="flex-1">
+              <p className="text-senior-body text-green-900 font-semibold">부모님 연결</p>
+              <p className="text-sm text-gray-600">초대 번호를 입력해 부모님과 연결</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/family')}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-gray-200 hover:bg-gray-50 transition-colors text-left"
+            aria-label="연결된 가족 목록"
+          >
+            <Users size={24} className="text-gray-700" />
+            <div className="flex-1">
+              <p className="text-senior-body font-semibold">연결된 가족</p>
+              <p className="text-sm text-gray-600">목록 보기 · 연결 해제</p>
+            </div>
+          </button>
+        </div>
       </section>
 
       <section className="card-senior mb-4">
