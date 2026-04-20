@@ -63,7 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: "kakao",
       options: {
         redirectTo,
-        scopes: "profile_nickname profile_image account_email",
+        // account_email은 카카오 비즈앱 전환 전에는 "권한 없음"이라 요청 시 KOE205.
+        // 닉네임/프로필 사진만 요청하고, 이메일은 비즈앱 승인 후 추가.
+        scopes: "profile_nickname profile_image",
       },
     });
     if (error) throw error;
