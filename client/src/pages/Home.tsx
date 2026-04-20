@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Mic } from 'lucide-react';
+import { Mic, LogIn, MessageCircle } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useAuth } from '@/contexts/AuthContext';
 import AppShell from '@/components/AppShell';
 import QuickTools from '@/components/QuickTools';
 
@@ -11,6 +12,7 @@ type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'complete' | 'erro
 export default function Home() {
   const [, navigate] = useLocation();
   const { speak } = usePreferences();
+  const { session, isLoading: authLoading } = useAuth();
   const [voiceState, setVoiceState] = useState<VoiceButtonState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -107,6 +109,30 @@ export default function Home() {
 
   return (
     <AppShell title="아빠트리" subtitle="시니어 오디오북">
+      {!authLoading && !session && (
+        <section
+          className="mb-6 rounded-3xl p-5 border-2"
+          style={{ background: "linear-gradient(135deg,#fefce8,#fef9c3)", borderColor: "#facc15" }}
+          aria-labelledby="login-cta-heading"
+        >
+          <h2 id="login-cta-heading" className="text-senior-heading mb-2 text-amber-900">
+            가족과 연결하려면 로그인이 필요해요
+          </h2>
+          <p className="text-senior-body text-amber-900/80 mb-4">
+            카카오톡 계정으로 3초 만에 시작할 수 있어요. 비밀번호를 기억하실 필요가 없어요.
+          </p>
+          <button
+            onClick={() => navigate('/login')}
+            className="w-full flex items-center justify-center gap-3 rounded-2xl p-4 font-bold"
+            style={{ background: '#FEE500', color: '#191919', minHeight: 72, fontSize: 'var(--text-senior-button)' }}
+            aria-label="카카오톡으로 시작하기"
+          >
+            <MessageCircle size={26} strokeWidth={2.4} fill="#191919" />
+            <span>카카오톡으로 시작하기</span>
+          </button>
+        </section>
+      )}
+
       {announcements.length > 0 && (
         <div className="mb-6 space-y-2" role="region" aria-label="공지사항">
           {announcements.map((a) => (

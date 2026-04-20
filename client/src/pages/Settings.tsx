@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Type, Trash2, Eye, Gauge, Play, HelpingHand, Users, LinkIcon } from 'lucide-react';
+import { Volume2, Type, Trash2, Eye, Gauge, Play, HelpingHand, Users, LinkIcon, LogIn, LogOut } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { session, signOut } = useAuth();
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [volume, setVolume] = useState(70);
   const [ttsSpeed, setTtsSpeed] = useState('0.90');
@@ -144,6 +147,50 @@ export default function Settings() {
           />
           <span className="text-senior-body">시각 접근성 향상</span>
         </label>
+      </section>
+
+      <section className="card-senior mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          {session ? <LogOut size={28} className="text-green-700" /> : <LogIn size={28} className="text-green-700" />}
+          <h2 className="text-senior-heading">로그인</h2>
+        </div>
+        {session ? (
+          <div className="space-y-2">
+            <div className="rounded-2xl p-4 border-2 border-green-200 bg-green-50">
+              <p className="text-sm text-gray-500">로그인 상태</p>
+              <p className="text-senior-body text-green-900 font-semibold truncate">
+                {session.user.user_metadata?.nickname ||
+                  session.user.user_metadata?.full_name ||
+                  session.user.email ||
+                  "로그인됨"}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                await signOut();
+                toast.success("로그아웃되었어요");
+                navigate("/");
+              }}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-red-200 hover:bg-red-50 transition-colors text-left"
+              aria-label="로그아웃"
+            >
+              <LogOut size={24} className="text-red-500" />
+              <span className="text-senior-body text-red-600 font-semibold">로그아웃</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/login')}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-amber-200 hover:bg-amber-50 transition-colors text-left"
+            aria-label="로그인 화면으로 이동"
+          >
+            <LogIn size={24} className="text-amber-600" />
+            <div className="flex-1">
+              <p className="text-senior-body text-amber-900 font-semibold">로그인하기</p>
+              <p className="text-sm text-gray-600">카카오톡으로 간단하게</p>
+            </div>
+          </button>
+        )}
       </section>
 
       <section className="card-senior mb-4">

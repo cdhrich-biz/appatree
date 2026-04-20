@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider } from "./contexts/AuthContext";
 import { PreferencesProvider } from "./contexts/PreferencesContext";
 import { RemoteSessionProvider } from "./contexts/RemoteSessionContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -30,6 +31,10 @@ const RemoteInvite = lazy(() => import("./pages/RemoteInvite"));
 const RemoteAccept = lazy(() => import("./pages/RemoteAccept"));
 const Family = lazy(() => import("./pages/Family"));
 const RemoteHelper = lazy(() => import("./pages/RemoteHelper"));
+
+// 인증
+const Login = lazy(() => import("./pages/Login"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 // 관리자 페이지는 일반 시니어 사용자에게 로드될 필요 전혀 없음 → 전부 lazy
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -87,6 +92,10 @@ function Router() {
         <Route path={"/family/accept"} component={RemoteAccept} />
         <Route path={"/remote/:sessionKey"} component={RemoteHelper} />
 
+        {/* 인증 */}
+        <Route path={"/login"} component={Login} />
+        <Route path={"/auth/callback"} component={AuthCallback} />
+
         {/* Admin Routes (lazy 전부) */}
         <Route path="/admin">{() => <AdminRoute Page={AdminOverview} />}</Route>
         <Route path="/admin/users">{() => <AdminRoute Page={AdminUsers} />}</Route>
@@ -140,19 +149,21 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <PreferencesProvider>
-          <RemoteSessionProvider>
-            <TooltipProvider>
-              <Toaster />
-              <ActiveSessionBanner />
-              <ConnectionStatusBanner />
-              <ParentActionExecutor />
-              <HighlightOverlay />
-              <Router />
-              <IncomingSessionDialog />
-            </TooltipProvider>
-          </RemoteSessionProvider>
-        </PreferencesProvider>
+        <AuthProvider>
+          <PreferencesProvider>
+            <RemoteSessionProvider>
+              <TooltipProvider>
+                <Toaster />
+                <ActiveSessionBanner />
+                <ConnectionStatusBanner />
+                <ParentActionExecutor />
+                <HighlightOverlay />
+                <Router />
+                <IncomingSessionDialog />
+              </TooltipProvider>
+            </RemoteSessionProvider>
+          </PreferencesProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

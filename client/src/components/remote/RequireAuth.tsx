@@ -1,12 +1,12 @@
 // 원격 지원 페이지 공통 로그인 가드.
-// Manus OAuth 세션이 없으면 "로그인이 필요해요" 시니어 친화 화면을 렌더한다.
-// 로그인 상태를 판정할 때 RemoteSessionContext의 meQuery 결과(=myUserId)를 재사용한다.
+// Supabase Auth 세션이 없으면 시니어 친화 "로그인이 필요해요" 화면을 렌더한다.
+// 버튼 클릭 시 /login 으로 이동해 카카오 로그인 플로우를 시작한다.
 
-import { LogIn, UserRound } from "lucide-react";
+import { Loader2, LogIn, UserRound } from "lucide-react";
 import { type ReactNode } from "react";
+import { useLocation } from "wouter";
 import AppShell from "@/components/AppShell";
-import { getLoginUrl } from "@/const";
-import { useRemoteSession } from "@/contexts/RemoteSessionContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface RequireAuthProps {
   title?: string;
@@ -14,9 +14,21 @@ interface RequireAuthProps {
 }
 
 export default function RequireAuth({ title = "로그인이 필요해요", children }: RequireAuthProps) {
-  const { myUserId } = useRemoteSession();
+  const [, navigate] = useLocation();
+  const { session, isLoading } = useAuth();
 
-  if (myUserId) return <>{children}</>;
+  if (isLoading) {
+    return (
+      <AppShell title={title} showBack>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Loader2 size={48} className="text-gray-400 animate-spin mb-4" aria-hidden />
+          <p className="text-senior-body text-gray-500">잠시만 기다려주세요...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (session) return <>{children}</>;
 
   return (
     <AppShell title={title} showBack>
@@ -32,17 +44,15 @@ export default function RequireAuth({ title = "로그인이 필요해요", child
         <h2 className="text-senior-heading mb-2">로그인이 필요해요</h2>
         <p className="text-senior-body text-gray-700 mb-6">
           가족과 연결하려면 먼저 로그인이 필요합니다.<br />
-          아래 버튼을 누르면 로그인 화면으로 이동해요.
+          카카오톡으로 간단하게 시작할 수 있어요.
         </p>
         <button
-          onClick={() => {
-            window.location.href = getLoginUrl();
-          }}
+          onClick={() => navigate("/login")}
           className="btn-primary w-full flex items-center justify-center gap-2"
-          aria-label="로그인하기"
+          aria-label="로그인 화면으로 이동"
         >
           <LogIn size={22} />
-          <span>로그인하기</span>
+          <span>로그인 화면으로 이동</span>
         </button>
       </div>
     </AppShell>

@@ -12,4 +12,7 @@ export const ENV = {
   ablyApiKey: process.env.ABLY_API_KEY ?? "",
   meteredTurnKey: process.env.METERED_TURN_KEY ?? "",
   meteredTurnDomain: process.env.METERED_TURN_DOMAIN ?? "",
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
 };
