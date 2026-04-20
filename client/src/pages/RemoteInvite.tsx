@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { trpc } from "@/lib/trpc";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useRemoteSession } from "@/contexts/RemoteSessionContext";
+import RequireAuth from "@/components/remote/RequireAuth";
 
 // 6자리 코드를 "123-456"처럼 하이픈으로 나눠서 크게 표시
 function formatCode(code: string): string {
@@ -25,14 +27,24 @@ function speakCodeDigits(code: string, speak: (m: string) => void) {
 }
 
 export default function RemoteInvite() {
+  return (
+    <RequireAuth title="자녀에게 도움 요청">
+      <RemoteInviteContent />
+    </RequireAuth>
+  );
+}
+
+function RemoteInviteContent() {
   const { speak } = usePreferences();
+  const { myUserId } = useRemoteSession();
   const inviteMutation = trpc.remote.createInvite.useMutation();
   const [invite, setInvite] = useState<{ code: string; expiresAt: Date } | null>(null);
   const [now, setNow] = useState(Date.now());
   const [hasAnnounced, setHasAnnounced] = useState(false);
 
-  // 페이지 진입 시 코드 자동 발행
+  // 페이지 진입 시 코드 자동 발행 (로그인 확정 후)
   useEffect(() => {
+    if (!myUserId) return;
     let cancelled = false;
     inviteMutation
       .mutateAsync()
@@ -48,7 +60,7 @@ export default function RemoteInvite() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [myUserId]);
 
   // 1초마다 만료 카운트다운 갱신
   useEffect(() => {

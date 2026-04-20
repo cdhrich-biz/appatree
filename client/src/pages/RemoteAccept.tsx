@@ -4,8 +4,17 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { trpc } from "@/lib/trpc";
+import RequireAuth from "@/components/remote/RequireAuth";
 
 export default function RemoteAccept() {
+  return (
+    <RequireAuth title="부모님 연결">
+      <RemoteAcceptContent />
+    </RequireAuth>
+  );
+}
+
+function RemoteAcceptContent() {
   const [, navigate] = useLocation();
   const [code, setCode] = useState("");
   const [success, setSuccess] = useState(false);

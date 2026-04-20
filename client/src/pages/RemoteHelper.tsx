@@ -25,11 +25,20 @@ import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { useRemoteSession } from "@/contexts/RemoteSessionContext";
 import ParentMirror from "@/components/remote/ParentMirror";
+import RequireAuth from "@/components/remote/RequireAuth";
 import type { PlayerSnapshot, RemoteActionEvent, SessionChannelEvent } from "@shared/remoteEvents";
 
 type Phase = "waiting" | "active" | "rejected" | "ended";
 
 export default function RemoteHelper() {
+  return (
+    <RequireAuth title="원격 도와드리기">
+      <RemoteHelperContent />
+    </RequireAuth>
+  );
+}
+
+function RemoteHelperContent() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/remote/:sessionKey");
   const sessionKey = params?.sessionKey ?? "";

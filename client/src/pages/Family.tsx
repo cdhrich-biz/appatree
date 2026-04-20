@@ -5,8 +5,17 @@ import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { trpc } from "@/lib/trpc";
 import { useRemoteSession } from "@/contexts/RemoteSessionContext";
+import RequireAuth from "@/components/remote/RequireAuth";
 
 export default function Family() {
+  return (
+    <RequireAuth title="가족">
+      <FamilyContent />
+    </RequireAuth>
+  );
+}
+
+function FamilyContent() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
   const { registerChildSession, myUserId } = useRemoteSession();
