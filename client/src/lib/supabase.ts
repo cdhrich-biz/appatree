@@ -26,7 +26,10 @@ export function getSupabase(): SupabaseClient {
       flowType: "pkce",
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true,
+      // detectSessionInUrl: 암묵적 교환은 실패를 조용히 삼켜서
+      // 콜백 페이지가 무한 로딩에 빠진다. AuthCallback에서 명시적으로
+      // exchangeCodeForSession을 호출해 에러를 사용자에게 보여준다.
+      detectSessionInUrl: false,
       storageKey: "appatree.auth.v1",
     },
   });
