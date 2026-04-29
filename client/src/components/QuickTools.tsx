@@ -1,4 +1,4 @@
-import { Film, Flashlight, Camera, Search } from 'lucide-react';
+import { Flashlight, Camera, Search } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { useCameraTorch } from '@/hooks/useCameraTorch';
@@ -17,30 +17,6 @@ export default function QuickTools() {
   return (
     <section className="mb-8" aria-labelledby="quicktools-heading">
       <h2 id="quicktools-heading" className="text-senior-heading mb-3">빠른 도구</h2>
-
-      <button
-        onClick={() => navigate('/video')}
-        className="w-full flex items-center gap-4 rounded-3xl p-5 mb-3 border-2 border-[color:var(--app-border)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
-        style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-          minHeight: 120,
-        }}
-        aria-label="영상 보기 열기"
-      >
-        <span
-          className="flex items-center justify-center w-20 h-20 rounded-2xl flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff' }}
-          aria-hidden
-        >
-          <Film size={40} strokeWidth={2.2} />
-        </span>
-        <div className="flex-1 text-left">
-          <p className="text-senior-button text-green-800">영상 보기</p>
-          <p className="text-senior-body text-gray-600 mt-1">
-            뉴스 · 건강 · 트로트 · 요리
-          </p>
-        </div>
-      </button>
 
       <div className="grid grid-cols-3 gap-3">
         <button
