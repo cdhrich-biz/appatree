@@ -1,32 +1,30 @@
 import { trpc } from "@/lib/trpc";
-import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import { httpBatchLink } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
-import { getCurrentAccessToken } from "./contexts/AuthContext";
 
 import "./index.css";
 
 // ----------------------------------------------------------------------------
-// Service Worker: 현재 비활성화.
-// - 기존 구 SW가 스테일 index.html / 구 CSP를 캐시해 프로덕션 크래시 유발
-// - /sw.js 는 kill-switch (자신 + 모든 캐시 삭제, SW_KILL_RELOAD 메시지 송신)
-// - 기존 사용자는 브라우저 자동 업데이트로 새 sw.js 받아 정리됨
-// - 여기서는 새 등록을 하지 않고, kill 메시지만 받아 자동 리로드 처리
+// Service Worker: 설치 가능(installable) 전용 최소 SW (/sw-v2.js).
+// - 과거 구 SW(/sw.js)는 스테일 캐시로 크래시를 유발 → kill-switch로 정리됨
+// - sw-v2.js 는 "캐싱을 하지 않는" 최소 SW. PWA "홈 화면에 추가" 자동 안내
+//   (Chromium 계열 beforeinstallprompt)의 전제 조건(활성 fetch 핸들러)만 충족
+// - 구 sw.js 를 받은 사용자는 SW_KILL_RELOAD 신호로 1회 리로드 후 sw-v2로 교체됨
 // ----------------------------------------------------------------------------
 if ('serviceWorker' in navigator) {
-  // 과거 등록된 SW가 살아있으면 리로드 신호 수신 후 갱신
+  // 과거 kill-switch SW가 보내는 리로드 신호 수신 (구 사용자 호환)
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data?.type === 'SW_KILL_RELOAD') {
       window.location.reload();
     }
   });
-  // 혹시 남아있는 기존 등록 전부 언레지스터 (방어적 정리)
-  navigator.serviceWorker.getRegistrations()
-    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
-    .catch(() => { /* ignore */ });
+  // 설치 가능 조건 충족용 최소 SW 등록 (캐싱 없음 — sw-v2.js 주석 참고)
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-v2.js').catch(() => { /* ignore */ });
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -64,34 +62,15 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const queryClient = new QueryClient();
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
-  if (!(error instanceof TRPCClientError)) return;
-  if (typeof window === "undefined") return;
-
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  if (!isUnauthorized) return;
-
-  // /login, /auth/callback 에서는 이미 로그인 흐름 중이니 루프를 막는다
-  const path = window.location.pathname;
-  if (path.startsWith("/login") || path.startsWith("/auth/")) return;
-
-  window.location.href = "/login";
-};
-
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
-    const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
-    console.error("[API Query Error]", error);
+    console.error("[API Query Error]", event.query.state.error);
   }
 });
 
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
-    const error = event.mutation.state.error;
-    redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
+    console.error("[API Mutation Error]", event.mutation.state.error);
   }
 });
 
@@ -100,10 +79,6 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      headers() {
-        const token = getCurrentAccessToken();
-        return token ? { Authorization: `Bearer ${token}` } : {};
-      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

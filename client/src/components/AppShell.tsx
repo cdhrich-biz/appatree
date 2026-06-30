@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowLeft, Home as HomeIcon, Search, MessageCircle, BookOpen, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, Home as HomeIcon, Search, BookOpen, Settings as SettingsIcon } from 'lucide-react';
 
 interface AppShellProps {
   title?: string;
@@ -76,7 +76,6 @@ function BottomNav({ current, onNavigate }: { current: string; onNavigate: (path
   const items = [
     { path: '/', label: '홈', icon: HomeIcon, aria: '홈' },
     { path: '/search', label: '검색', icon: Search, aria: '검색' },
-    { path: '/chat', label: 'AI 대화', icon: MessageCircle, aria: 'AI 대화' },
     { path: '/library', label: '즐겨찾기', icon: BookOpen, aria: '즐겨찾기' },
   ];
 
@@ -91,7 +90,7 @@ function BottomNav({ current, onNavigate }: { current: string; onNavigate: (path
       aria-label="주요 탐색"
       style={{ minHeight: 'calc(var(--bottom-nav-height) + var(--safe-bottom))' }}
     >
-      <div className="max-w-2xl mx-auto grid grid-cols-4">
+      <div className="max-w-2xl mx-auto grid grid-cols-3">
         {items.map(({ path, label, icon: Icon, aria }) => {
           const active = isActive(path);
           return (

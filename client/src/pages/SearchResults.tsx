@@ -285,10 +285,7 @@ export default function SearchResults() {
       ) : submittedQuery ? (
         <div className="text-center py-16">
           <p className="text-senior-heading text-gray-700 mb-2">결과가 없습니다</p>
-          <p className="text-senior-body text-gray-500 mb-6">AI 도우미가 추천해 드릴게요</p>
-          <button onClick={() => navigate('/chat')} className="btn-primary">
-            AI에게 물어보기
-          </button>
+          <p className="text-senior-body text-gray-500">다른 검색어로 다시 찾아보세요</p>
         </div>
       ) : (
         <div className="py-10 space-y-8">

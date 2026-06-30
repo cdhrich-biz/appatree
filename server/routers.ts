@@ -6,11 +6,9 @@ import { publicProcedure, router } from "./_core/trpc";
 import { searchVideos, getVideoDetails, getVideoDetailsBatch, getChannelDetails, getPlaylistItems } from "./_core/youtube";
 import { voiceRouter } from "./voiceRouter";
 import { libraryRouter } from "./libraryRouter";
-import { chatRouter } from "./chatRouter";
 import { preferencesRouter } from "./preferencesRouter";
 import { configRouter } from "./configRouter";
 import { adminRouter } from "./adminRouter";
-import { remoteRouter } from "./remoteRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -44,11 +42,9 @@ export const appRouter = router({
 
   voice: voiceRouter,
   library: libraryRouter,
-  chat: chatRouter,
   preferences: preferencesRouter,
   config: configRouter,
   admin: adminRouter,
-  remote: remoteRouter,
 });
 
 export type AppRouter = typeof appRouter;

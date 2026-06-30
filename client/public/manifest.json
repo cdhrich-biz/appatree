@@ -52,19 +52,6 @@
       ]
     },
     {
-      "name": "AI 추천",
-      "short_name": "추천",
-      "description": "AI가 추천하는 오디오북 보기",
-      "url": "/chat",
-      "icons": [
-        {
-          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2315803d' width='96' height='96' rx='22'/><text x='48' y='48' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'>💬</text></svg>",
-          "sizes": "96x96",
-          "type": "image/svg+xml"
-        }
-      ]
-    },
-    {
       "name": "내 서재",
       "short_name": "서재",
       "description": "즐겨찾기한 오디오북 보기",

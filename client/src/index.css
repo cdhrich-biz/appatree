@@ -379,6 +379,16 @@
     animation: recording-pulse 1.1s ease-in-out infinite;
   }
 
+  /* 입력 오류 흔들림 (설정 게이트 등) */
+  @keyframes appatree-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  .animate-shake {
+    animation: appatree-shake 0.4s ease-in-out;
+  }
+
   /* List item shell */
   .list-item-senior {
     @apply flex gap-4 p-4 rounded-2xl transition-all;

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Type, Trash2, Eye, Gauge, Play, HelpingHand, Users, LinkIcon, LogIn, LogOut } from 'lucide-react';
+import { Volume2, Type, Trash2, Eye, Gauge, Play } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useAuth } from '@/contexts/AuthContext';
+import SettingsGate from '@/components/SettingsGate';
+import AddToHomeScreen from '@/components/AddToHomeScreen';
 
 export default function Settings() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  const { session, signOut } = useAuth();
+  const [gatePassed, setGatePassed] = useState(false);
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [volume, setVolume] = useState(70);
   const [ttsSpeed, setTtsSpeed] = useState('0.90');
@@ -59,6 +59,15 @@ export default function Settings() {
     { value: '1.00', label: '표준' },
     { value: '1.25', label: '빠름' },
   ];
+
+  // 1단계 안전 게이트 — 안내 숫자를 입력해야 실제 설정에 진입 (시니어 오클릭 방지)
+  if (!gatePassed) {
+    return (
+      <AppShell title="설정" hideBottomNav showBack onBack={() => navigate('/')}>
+        <SettingsGate onPass={() => setGatePassed(true)} onExit={() => navigate('/')} />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="설정" showBack>
@@ -149,91 +158,7 @@ export default function Settings() {
         </label>
       </section>
 
-      <section className="card-senior mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          {session ? <LogOut size={28} className="text-green-700" /> : <LogIn size={28} className="text-green-700" />}
-          <h2 className="text-senior-heading">로그인</h2>
-        </div>
-        {session ? (
-          <div className="space-y-2">
-            <div className="rounded-2xl p-4 border-2 border-green-200 bg-green-50">
-              <p className="text-sm text-gray-500">로그인 상태</p>
-              <p className="text-senior-body text-green-900 font-semibold truncate">
-                {session.user.user_metadata?.nickname ||
-                  session.user.user_metadata?.full_name ||
-                  session.user.email ||
-                  "로그인됨"}
-              </p>
-            </div>
-            <button
-              onClick={async () => {
-                await signOut();
-                toast.success("로그아웃되었어요");
-                navigate("/");
-              }}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-red-200 hover:bg-red-50 transition-colors text-left"
-              aria-label="로그아웃"
-            >
-              <LogOut size={24} className="text-red-500" />
-              <span className="text-senior-body text-red-600 font-semibold">로그아웃</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => navigate('/login')}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-amber-200 hover:bg-amber-50 transition-colors text-left"
-            aria-label="로그인 화면으로 이동"
-          >
-            <LogIn size={24} className="text-amber-600" />
-            <div className="flex-1">
-              <p className="text-senior-body text-amber-900 font-semibold">로그인하기</p>
-              <p className="text-sm text-gray-600">카카오톡으로 간단하게</p>
-            </div>
-          </button>
-        )}
-      </section>
-
-      <section className="card-senior mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Users size={28} className="text-green-700" />
-          <h2 className="text-senior-heading">가족 관리</h2>
-        </div>
-        <div className="space-y-2">
-          <button
-            onClick={() => navigate('/help')}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-amber-200 hover:bg-amber-50 transition-colors text-left"
-            aria-label="자녀에게 도움 요청하기"
-          >
-            <HelpingHand size={24} className="text-amber-600" />
-            <div className="flex-1">
-              <p className="text-senior-body text-amber-900 font-semibold">자녀에게 도움 요청</p>
-              <p className="text-sm text-gray-600">초대 번호를 만들어 자녀와 연결</p>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/family/accept')}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-green-200 hover:bg-green-50 transition-colors text-left"
-            aria-label="부모님 초대 번호로 연결"
-          >
-            <LinkIcon size={24} className="text-green-700" />
-            <div className="flex-1">
-              <p className="text-senior-body text-green-900 font-semibold">부모님 연결</p>
-              <p className="text-sm text-gray-600">초대 번호를 입력해 부모님과 연결</p>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/family')}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-gray-200 hover:bg-gray-50 transition-colors text-left"
-            aria-label="연결된 가족 목록"
-          >
-            <Users size={24} className="text-gray-700" />
-            <div className="flex-1">
-              <p className="text-senior-body font-semibold">연결된 가족</p>
-              <p className="text-sm text-gray-600">목록 보기 · 연결 해제</p>
-            </div>
-          </button>
-        </div>
-      </section>
+      <AddToHomeScreen />
 
       <section className="card-senior mb-4">
         <h2 className="text-senior-heading mb-4">데이터 관리</h2>
