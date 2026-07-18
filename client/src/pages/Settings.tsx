@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Volume2, Type, Trash2, Eye, Gauge, Play } from 'lucide-react';
 import { useLocation } from 'wouter';
-import { trpc } from '@/lib/trpc';
-import { useQueryClient } from '@tanstack/react-query';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useHistory } from '@/hooks/useHistory';
 import AppShell from '@/components/AppShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import SettingsGate from '@/components/SettingsGate';
@@ -10,7 +11,9 @@ import AddToHomeScreen from '@/components/AddToHomeScreen';
 
 export default function Settings() {
   const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
+  const { prefs, update } = usePreferences();
+  const bookmarks = useBookmarks();
+  const history = useHistory();
   const [gatePassed, setGatePassed] = useState(false);
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [volume, setVolume] = useState(70);
@@ -20,31 +23,18 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [confirmType, setConfirmType] = useState<'history' | 'bookmarks' | null>(null);
 
-  const prefsQuery = trpc.preferences.get.useQuery(undefined, { retry: false });
-  const updateMutation = trpc.preferences.update.useMutation();
-  const clearHistoryMutation = trpc.library.clearHistory.useMutation();
-  const clearBookmarksMutation = trpc.library.clearBookmarks.useMutation();
-
   useEffect(() => {
-    if (prefsQuery.data) {
-      const p = prefsQuery.data;
-      setTextSize(p.textSize as 'small' | 'medium' | 'large');
-      setVolume(p.volume);
-      setTtsSpeed(String(p.ttsSpeed));
-      setAutoplay(p.autoplay);
-      setHighContrast(p.highContrast);
-    }
-  }, [prefsQuery.data]);
+    setTextSize(prefs.textSize);
+    setVolume(prefs.volume);
+    setTtsSpeed(String(prefs.ttsSpeed));
+    setAutoplay(prefs.autoplay);
+    setHighContrast(prefs.highContrast);
+  }, [prefs]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     setIsSaving(true);
-    try {
-      await updateMutation.mutateAsync({ textSize, volume, ttsSpeed, autoplay, highContrast });
-      await queryClient.invalidateQueries({ queryKey: [['preferences', 'get']] });
-      navigate('/');
-    } finally {
-      setIsSaving(false);
-    }
+    update({ textSize, volume, ttsSpeed: Number(ttsSpeed), autoplay, highContrast });
+    navigate('/');
   };
 
   const textSizes: { value: 'small' | 'medium' | 'large'; label: string }[] = [
@@ -118,7 +108,7 @@ export default function Settings() {
               key={value}
               onClick={() => setTtsSpeed(value)}
               className="btn-secondary text-base"
-              data-active={ttsSpeed === value}
+              data-active={Number(ttsSpeed) === Number(value)}
             >
               {label}
             </button>
@@ -207,7 +197,7 @@ export default function Settings() {
         title="재생 이력을 모두 삭제할까요?"
         description="이 작업은 되돌릴 수 없어요"
         confirmLabel="네, 삭제해요"
-        onConfirm={() => { clearHistoryMutation.mutate(); setConfirmType(null); }}
+        onConfirm={() => { history.clear(); setConfirmType(null); }}
         onCancel={() => setConfirmType(null)}
       />
       <ConfirmDialog
@@ -215,7 +205,7 @@ export default function Settings() {
         title="즐겨찾기를 모두 삭제할까요?"
         description="저장해둔 책이 모두 사라져요"
         confirmLabel="네, 삭제해요"
-        onConfirm={() => { clearBookmarksMutation.mutate(); setConfirmType(null); }}
+        onConfirm={() => { bookmarks.clear(); setConfirmType(null); }}
         onCancel={() => setConfirmType(null)}
       />
     </AppShell>

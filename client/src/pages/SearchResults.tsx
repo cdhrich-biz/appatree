@@ -7,6 +7,7 @@ import AppShell from '@/components/AppShell';
 import SkeletonCard from '@/components/SkeletonCard';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useBookmarks } from '@/hooks/useBookmarks';
 import { X } from 'lucide-react';
 import { playbackQueue } from '@/lib/playbackQueue';
 
@@ -96,16 +97,7 @@ export default function SearchResults() {
     return map;
   }, [detailsData]);
 
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
-  const bookmarkMutation = trpc.library.addBookmark.useMutation({
-    onSuccess: (_data, variables) => {
-      setBookmarkedIds((prev) => new Set(prev).add(variables.videoId));
-      toast.success('즐겨찾기에 추가되었습니다');
-    },
-    onError: () => {
-      toast.error('로그인이 필요합니다');
-    },
-  });
+  const bookmarks = useBookmarks();
 
   const handleSearch = () => {
     const q = searchQuery.trim();
@@ -156,14 +148,20 @@ export default function SearchResults() {
 
   const handleBookmark = (item: YouTubeSearchItem, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (bookmarks.has(item.id.videoId)) {
+      bookmarks.remove(item.id.videoId);
+      toast.success('즐겨찾기에서 제거되었습니다');
+      return;
+    }
     const detail = detailsMap.get(item.id.videoId);
-    bookmarkMutation.mutate({
+    bookmarks.add({
       videoId: item.id.videoId,
       title: item.snippet.title,
       channelName: item.snippet.channelTitle,
       thumbnailUrl: detail?.snippet.thumbnails.high?.url ?? item.snippet.thumbnails.medium?.url,
       duration: detail?.contentDetails.duration,
     });
+    toast.success('즐겨찾기에 추가되었습니다');
   };
 
   const sortOptions = [
@@ -227,7 +225,7 @@ export default function SearchResults() {
             const detail = detailsMap.get(item.id.videoId);
             const duration = detail ? parseDuration(detail.contentDetails.duration) : '';
             const views = detail ? formatViews(detail.statistics.viewCount) : '';
-            const bookmarked = bookmarkedIds.has(item.id.videoId);
+            const bookmarked = bookmarks.has(item.id.videoId);
 
             return (
               <article

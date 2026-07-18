@@ -1,5 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { trpc } from "@/lib/trpc";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface Preferences {
   textSize: "small" | "medium" | "large";
@@ -17,6 +16,25 @@ const DEFAULTS: Preferences = {
   highContrast: false,
 };
 
+const STORAGE_KEY = "appatree.preferences.v1";
+
+function readStore(): Preferences {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULTS;
+    const p = JSON.parse(raw) as Partial<Preferences>;
+    return {
+      textSize: p.textSize ?? DEFAULTS.textSize,
+      volume: typeof p.volume === "number" ? p.volume : DEFAULTS.volume,
+      ttsSpeed: typeof p.ttsSpeed === "number" ? p.ttsSpeed : DEFAULTS.ttsSpeed,
+      autoplay: typeof p.autoplay === "boolean" ? p.autoplay : DEFAULTS.autoplay,
+      highContrast: typeof p.highContrast === "boolean" ? p.highContrast : DEFAULTS.highContrast,
+    };
+  } catch {
+    return DEFAULTS;
+  }
+}
+
 const TEXT_SIZE_MAP = {
   small: { body: 18, button: 20, heading: 28, title: 32 },
   medium: { body: 20, button: 22, heading: 30, title: 36 },
@@ -26,28 +44,34 @@ const TEXT_SIZE_MAP = {
 interface PreferencesContextType {
   prefs: Preferences;
   isLoaded: boolean;
+  update: (partial: Partial<Preferences>) => void;
   speak: (message: string) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const prefsQuery = trpc.preferences.get.useQuery(undefined, {
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
+  const [prefs, setPrefs] = useState<Preferences>(readStore);
 
-  const prefs: Preferences = useMemo(() => {
-    if (!prefsQuery.data) return DEFAULTS;
-    const d = prefsQuery.data;
-    return {
-      textSize: (d.textSize as Preferences["textSize"]) ?? DEFAULTS.textSize,
-      volume: d.volume ?? DEFAULTS.volume,
-      ttsSpeed: Number(d.ttsSpeed) || DEFAULTS.ttsSpeed,
-      autoplay: d.autoplay ?? DEFAULTS.autoplay,
-      highContrast: d.highContrast ?? DEFAULTS.highContrast,
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) setPrefs(readStore());
     };
-  }, [prefsQuery.data]);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const update = useCallback((partial: Partial<Preferences>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...partial };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* quota/private mode: 무시 */
+      }
+      return next;
+    });
+  }, []);
 
   // Apply text size CSS variables to :root
   useEffect(() => {
@@ -80,7 +104,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <PreferencesContext.Provider value={{ prefs, isLoaded: !!prefsQuery.data, speak }}>
+    <PreferencesContext.Provider value={{ prefs, isLoaded: true, update, speak }}>
       {children}
     </PreferencesContext.Provider>
   );

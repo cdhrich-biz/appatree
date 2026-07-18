@@ -3,6 +3,8 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Moon, ChevronLeft, 
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useHistory } from '@/hooks/useHistory';
 import AppShell from '@/components/AppShell';
 import { playbackQueue, type QueueItem } from '@/lib/playbackQueue';
 import { usePlayerVoice, type PlayerVoiceCommand } from '@/hooks/usePlayerVoice';
@@ -73,9 +75,8 @@ export default function Player() {
   const historyRecordedFor = useRef<string>('');
   const autoplayOnReadyRef = useRef<boolean>(false);
 
-  const addHistoryMutation = trpc.library.addHistory.useMutation();
-  const updateProgressMutation = trpc.library.updateProgress.useMutation();
-  const bookmarkMutation = trpc.library.addBookmark.useMutation();
+  const bookmarks = useBookmarks();
+  const history = useHistory();
 
   const videoQuery = trpc.youtube.video.useQuery(
     { videoId: currentVideoId },
@@ -98,11 +99,12 @@ export default function Player() {
       setVideoChannel(detail.snippet.channelTitle);
       if (historyRecordedFor.current !== currentVideoId) {
         historyRecordedFor.current = currentVideoId;
-        addHistoryMutation.mutate({
+        history.upsert({
           videoId: currentVideoId,
           title: detail.snippet.title,
           channelName: detail.snippet.channelTitle,
           thumbnailUrl: detail.snippet.thumbnails.high?.url,
+          progressSeconds: 0,
           totalSeconds: Math.floor(duration),
         });
       }
@@ -177,11 +179,11 @@ export default function Player() {
     if (!currentVideoId) return;
     saveInterval.current = setInterval(() => {
       if (playerRef.current && isPlaying) {
-        updateProgressMutation.mutate({
-          videoId: currentVideoId,
-          progressSeconds: Math.floor(playerRef.current.getCurrentTime()),
-          totalSeconds: Math.floor(playerRef.current.getDuration()),
-        });
+        history.updateProgress(
+          currentVideoId,
+          Math.floor(playerRef.current.getCurrentTime()),
+          Math.floor(playerRef.current.getDuration()),
+        );
       }
     }, 30000);
     return () => clearInterval(saveInterval.current);
@@ -276,9 +278,13 @@ export default function Player() {
 
   const handleBookmark = () => {
     if (!currentVideoId) return;
+    if (bookmarks.has(currentVideoId)) {
+      bookmarks.remove(currentVideoId);
+      return;
+    }
     const items = (videoQuery.data?.items as VideoDetail[] | undefined);
     const detail = items?.[0];
-    bookmarkMutation.mutate({
+    bookmarks.add({
       videoId: currentVideoId,
       title: videoTitle,
       channelName: videoChannel,
@@ -332,7 +338,7 @@ export default function Player() {
     return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  const bookmarked = bookmarkMutation.isSuccess;
+  const bookmarked = currentVideoId ? bookmarks.has(currentVideoId) : false;
   const rateOptions: { value: number; label: string }[] = [
     { value: 0.75, label: '느림' },
     { value: 1, label: '보통' },

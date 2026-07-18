@@ -44,24 +44,40 @@ export function checkRateLimit(userId: number): boolean {
 }
 
 // ─── Config helpers ──────────────────────────────────────────────────────────
+const DEFAULT_YT_CONFIG = {
+  safeSearch: "strict",
+  relevanceLanguage: "ko",
+  audiobookSuffix: "오디오북",
+  defaultMaxResults: 10,
+  blockedChannels: [] as string[],
+  blockedKeywords: [] as string[],
+};
+
 async function getYouTubeConfig() {
   const db = await getDb();
   if (!db) {
-    return { safeSearch: "strict", relevanceLanguage: "ko", audiobookSuffix: "오디오북", defaultMaxResults: 10, blockedChannels: [] as string[], blockedKeywords: [] as string[] };
+    return { ...DEFAULT_YT_CONFIG };
   }
-  const configs = await db
-    .select({ configKey: appConfig.configKey, configValue: appConfig.configValue })
-    .from(appConfig)
-    .where(
-      or(
-        eq(appConfig.configKey, "youtube.safeSearch"),
-        eq(appConfig.configKey, "youtube.relevanceLanguage"),
-        eq(appConfig.configKey, "youtube.audiobookSuffix"),
-        eq(appConfig.configKey, "youtube.defaultMaxResults"),
-        eq(appConfig.configKey, "youtube.blockedChannels"),
-        eq(appConfig.configKey, "youtube.blockedKeywords")
-      )
-    );
+  // DB가 없거나 연결이 끊겨도 검색은 기본 설정으로 계속 동작해야 한다.
+  let configs: Array<{ configKey: string; configValue: string }>;
+  try {
+    configs = await db
+      .select({ configKey: appConfig.configKey, configValue: appConfig.configValue })
+      .from(appConfig)
+      .where(
+        or(
+          eq(appConfig.configKey, "youtube.safeSearch"),
+          eq(appConfig.configKey, "youtube.relevanceLanguage"),
+          eq(appConfig.configKey, "youtube.audiobookSuffix"),
+          eq(appConfig.configKey, "youtube.defaultMaxResults"),
+          eq(appConfig.configKey, "youtube.blockedChannels"),
+          eq(appConfig.configKey, "youtube.blockedKeywords")
+        )
+      );
+  } catch (err) {
+    console.warn("[YouTube] app_config 조회 실패, 기본 설정 사용:", (err as Error).message);
+    return { ...DEFAULT_YT_CONFIG };
+  }
   const m = new Map(configs.map((c) => [c.configKey, c.configValue]));
 
   let blockedChannels: string[] = [];

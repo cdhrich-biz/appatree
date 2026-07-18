@@ -3,6 +3,7 @@ import { Mic } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useHistory } from '@/hooks/useHistory';
 import AppShell from '@/components/AppShell';
 import QuickTools from '@/components/QuickTools';
 
@@ -18,11 +19,11 @@ export default function Home() {
 
   const categoriesQuery = trpc.config.categories.useQuery();
   const announcementsQuery = trpc.config.announcements.useQuery();
-  const historyQuery = trpc.library.history.useQuery({ limit: 5, offset: 0 }, { retry: false });
+  const history = useHistory();
 
   const categories = categoriesQuery.data ?? [];
   const announcements = announcementsQuery.data ?? [];
-  const recentHistory = historyQuery.data ?? [];
+  const recentHistory = history.items.slice(0, 5);
 
   // 개인화: 가장 최근 재생한 영상의 채널명 기반 추천
   const recommendChannel = recentHistory.find((h) => h.channelName)?.channelName ?? '';
@@ -172,7 +173,7 @@ export default function Home() {
                 : 0;
               return (
                 <button
-                  key={item.id}
+                  key={item.videoId}
                   onClick={() =>
                     navigate(
                       `/player?id=${item.videoId}&title=${encodeURIComponent(item.title)}&t=${item.progressSeconds}`,

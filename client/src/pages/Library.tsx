@@ -1,31 +1,22 @@
 import { useState } from 'react';
 import { Trash2, Play } from 'lucide-react';
 import { useLocation } from 'wouter';
-import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
-import SkeletonCard from '@/components/SkeletonCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { playbackQueue } from '@/lib/playbackQueue';
+import { useBookmarks, type Bookmark } from '@/hooks/useBookmarks';
+import { useHistory, type HistoryItem } from '@/hooks/useHistory';
 
 export default function Library() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<'bookmarks' | 'recent'>('bookmarks');
   const [pendingRemove, setPendingRemove] = useState<{ videoId: string; title: string } | null>(null);
 
-  const bookmarksQuery = trpc.library.bookmarks.useQuery({ limit: 50, offset: 0 });
-  const historyQuery = trpc.library.history.useQuery({ limit: 50, offset: 0 });
-  const removeBookmarkMutation = trpc.library.removeBookmark.useMutation({
-    onSuccess: () => {
-      bookmarksQuery.refetch();
-      toast.success('즐겨찾기에서 제거했습니다');
-    },
-  });
+  const bookmarks = useBookmarks();
+  const history = useHistory();
 
-  const bookmarkItems = bookmarksQuery.data ?? [];
-  const historyItems = historyQuery.data ?? [];
-  const displayItems = activeTab === 'bookmarks' ? bookmarkItems : historyItems;
-  const isLoading = activeTab === 'bookmarks' ? bookmarksQuery.isLoading : historyQuery.isLoading;
+  const displayItems: (Bookmark | HistoryItem)[] = activeTab === 'bookmarks' ? bookmarks.items : history.items;
 
   const handlePlay = (videoId: string, title: string, progressSeconds?: number) => {
     const queueItems = displayItems.map((it) => ({
@@ -45,7 +36,8 @@ export default function Library() {
 
   const confirmRemove = () => {
     if (pendingRemove) {
-      removeBookmarkMutation.mutate({ videoId: pendingRemove.videoId });
+      bookmarks.remove(pendingRemove.videoId);
+      toast.success('즐겨찾기에서 제거했습니다');
       setPendingRemove(null);
     }
   };
@@ -73,9 +65,7 @@ export default function Library() {
         </button>
       </div>
 
-      {isLoading ? (
-        <SkeletonCard count={4} />
-      ) : displayItems.length > 0 ? (
+      {displayItems.length > 0 ? (
         <div className="space-y-3">
           {displayItems.map((item) => {
             const isHistory = 'progressSeconds' in item;
@@ -84,7 +74,7 @@ export default function Library() {
             const progressPct = total > 0 ? Math.round((progress / total) * 100) : 0;
 
             return (
-              <article key={item.id} className="list-item-senior">
+              <article key={item.videoId} className="list-item-senior">
                 <div className="flex-shrink-0">
                   {item.thumbnailUrl ? (
                     <img src={item.thumbnailUrl} alt="" className="w-24 h-24 rounded-2xl object-cover" />
